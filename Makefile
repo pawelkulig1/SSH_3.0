@@ -1,11 +1,10 @@
 prepare_devel_env:
-	create_network
+	make create_network
 	make run_mariadb_devel
 	make run_ssh_server_devel
 
 create_network:
 	-docker network create --subnet 172.16.16.0/24 internal
-
 
 prepare_env:
 	-docker network create --subnet 172.16.16.0/24 internal

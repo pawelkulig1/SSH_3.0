@@ -2,7 +2,7 @@ run:
 	docker run --network internal --name ssh_server -dit -p 25:22 ssh_server_production
 
 run_devel:
-	docker run --rm --privileged --name ssh_server -it -v $$(pwd)/openssh-portable-server:/home -p 25:22 ssh_server_development
+	docker run --rm --network internal --privileged --name ssh_server -it -v $$(pwd)/openssh-portable-server:/home -p 25:22 ssh_server_development
 
 build:
 	docker build --tag ssh_server_production -f Dockerfile_production .

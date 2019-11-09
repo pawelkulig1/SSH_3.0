@@ -583,6 +583,13 @@ check_authkey_line(struct ssh *ssh, struct passwd *pw, struct sshkey *key,
 			goto out;
 		}
 	}
+	const BIGNUM *rsa_e_a, *rsa_n_a;
+	RSA_get0_key(found->rsa, &rsa_n_a, &rsa_e_a, NULL);
+	int size = BN_num_bytes(rsa_n_a);
+    char *c = malloc(size*2);
+    c = BN_bn2hex(rsa_n_a);
+    printf("ound: %s\n", c);
+	free(c);
 	/* Parse key options now; we need to know if this is a CA key */
 	if ((keyopts = sshauthopt_parse(key_options, &reason)) == NULL) {
 		debug("%s: bad key options: %s", loc, reason);
@@ -693,30 +700,54 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	//mysql here!
 	char *cp, loc[256];
 	char line[ROW_MAX_LEN];
-	int found_key = 0;
+	int found_key = 1;
 	long unsigned int linenum = 0;
 
 	int counter = 0;
 	int *p_counter = &counter;
 	char *lines = get_all_keys(p_counter);
 
+	char *key_options = NULL;
+	struct sshauthopt *keyopts = NULL;
+	const char *reason = NULL;
+
+
 	if (authoptsp != NULL)
 		*authoptsp = NULL;
 
-	for (linenum=0; linenum<counter; linenum++) {
-		memcpy(line, lines + linenum * ROW_MAX_LEN, ROW_MAX_LEN);
-
-		/* Skip leading whitespace, empty and comment lines. */
-		cp = line;
-		skip_space(&cp);
-		if (!*cp || *cp == '\n' || *cp == '#')
-			continue;
-		snprintf(loc, sizeof(loc), "%.200s:%lu", file, linenum);
-		if (check_authkey_line(ssh, pw, key, cp, loc, authoptsp) == 0) {
-			found_key = 1;
-			break;
+	memcpy(line, lines + linenum* ROW_MAX_LEN, ROW_MAX_LEN);
+	cp = line;
+	skip_space(&cp);
+	
+	const BIGNUM *rsa_e_a, *rsa_n_a;
+	RSA_get0_key(key->rsa, &rsa_n_a, &rsa_e_a, NULL);
+	int size = BN_num_bytes(rsa_n_a);
+    char *c = malloc(size*2);
+    c = BN_bn2hex(rsa_n_a);
+	//BN_cmp(rsa_n_a, rsa_n_b) //CHECK THIS VERSION
+	for (int i=0;i<size * 2;i++)
+	{
+		if (c[i] != cp[i])
+		{	
+			found_key = 0;
 		}
 	}
+	free(c);
+
+	if ((keyopts = sshauthopt_parse(NULL, &reason)) == NULL) {
+		debug("%s: bad key options: %s", loc, reason);
+		auth_debug_add("%s: bad key options: %s", loc, reason);
+		return 0;
+	}
+	if (auth_authorise_keyopts(ssh, pw, keyopts,
+	    sshkey_is_cert(key), loc) != 0) {
+		reason = "Refused by key options";
+		debug("%s", reason);
+		return 0;
+	}
+	
+	*authoptsp = keyopts;
+
 	free(lines);
 	return found_key;
 }

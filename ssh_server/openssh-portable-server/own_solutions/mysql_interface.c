@@ -25,7 +25,7 @@ char *get_all_keys(int *counter)
 	MYSQL_RES *query_id;
 	MYSQL_ROW row;
 
-	mysql_query(&mysql, "SELECT pub_key from ssh_keys");
+	mysql_query(&mysql, "SELECT pub_key_converted from ssh_keys");
 	query_id = mysql_store_result(&mysql);
 
 	while ((row = mysql_fetch_row(query_id)) != 0)
