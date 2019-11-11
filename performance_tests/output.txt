@@ -1,0 +1,4 @@
+anaconda-ks.cfg
+anaconda-post-nochroot.log
+anaconda-post.log
+original-ks.cfg

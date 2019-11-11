@@ -177,7 +177,7 @@ libssh.a: $(LIBSSH_OBJS)
 ssh$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHOBJS)
 	$(LD) -o $@ $(SSHOBJS) $(LDFLAGS) -lssh -lopenbsd-compat $(SSHLIBS) $(LIBS) $(GSSLIBS)
 
-OWN mysql_interface.o:
+OWN mysql_interface.o: own_solutions/mysql_interface.h own_solutions/mysql_interface.c
 	$(CC) -c own_solutions/mysql_interface.c -o $@ -lmysqlclient -fPIC -g
 
 sshd$(EXEEXT): libssh.a	$(LIBCOMPAT) $(SSHDOBJS) mysql_interface.o

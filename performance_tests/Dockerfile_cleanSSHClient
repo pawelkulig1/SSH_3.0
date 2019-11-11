@@ -1,0 +1,5 @@
+from fedora:31
+
+RUN \
+    dnf update -y && \
+    dnf install openssh-clients -y 

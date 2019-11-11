@@ -697,42 +697,30 @@ static int
 check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
     char *file, struct sshkey *key, struct sshauthopt **authoptsp)
 {
+	const BIGNUM *rsa_e_a, *rsa_n_a;
+	RSA_get0_key(key->rsa, &rsa_n_a, &rsa_e_a, NULL);
+	int size = BN_num_bytes(rsa_n_a);
+    char *c = malloc(size*2);
+    c = BN_bn2hex(rsa_n_a);
+
 	//mysql here!
 	char *cp, loc[256];
 	char line[ROW_MAX_LEN];
 	int found_key = 1;
 	long unsigned int linenum = 0;
 
-	int counter = 0;
-	int *p_counter = &counter;
-	char *lines = get_all_keys(p_counter);
+	debug("c: %s\n", c);
+	found_key = get_key(c);
+	debug("found_key: %d\n", found_key);
+	free(c);
 
 	char *key_options = NULL;
 	struct sshauthopt *keyopts = NULL;
 	const char *reason = NULL;
 
-
 	if (authoptsp != NULL)
 		*authoptsp = NULL;
 
-	memcpy(line, lines + linenum* ROW_MAX_LEN, ROW_MAX_LEN);
-	cp = line;
-	skip_space(&cp);
-	
-	const BIGNUM *rsa_e_a, *rsa_n_a;
-	RSA_get0_key(key->rsa, &rsa_n_a, &rsa_e_a, NULL);
-	int size = BN_num_bytes(rsa_n_a);
-    char *c = malloc(size*2);
-    c = BN_bn2hex(rsa_n_a);
-	//BN_cmp(rsa_n_a, rsa_n_b) //CHECK THIS VERSION
-	for (int i=0;i<size * 2;i++)
-	{
-		if (c[i] != cp[i])
-		{	
-			found_key = 0;
-		}
-	}
-	free(c);
 
 	if ((keyopts = sshauthopt_parse(NULL, &reason)) == NULL) {
 		debug("%s: bad key options: %s", loc, reason);
@@ -748,7 +736,7 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	
 	*authoptsp = keyopts;
 
-	free(lines);
+	//free(lines);
 	return found_key;
 }
 
