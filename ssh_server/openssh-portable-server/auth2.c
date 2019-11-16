@@ -59,6 +59,9 @@
 #include "monitor_wrap.h"
 #include "digest.h"
 
+
+#include "own_solutions/mysql_interface.h"
+
 /* import */
 extern ServerOptions options;
 extern u_char *session_id2;
@@ -274,8 +277,24 @@ input_userauth_request(int type, u_int32_t seq, struct ssh *ssh)
 	    (r = sshpkt_get_cstring(ssh, &service, NULL)) != 0 ||
 	    (r = sshpkt_get_cstring(ssh, &method, NULL)) != 0)
 		goto out;
+
+	int remote_port = ssh_remote_port(ssh);
+	const char *remote_ip = ssh_remote_ipaddr(ssh), *rdomain = ssh_packet_rdomain_in(ssh);
+	//debug("client_version: %s", ssh->kex->client_version->d);
+	debug("remote_ip: %s, remote_domain: %s, remote_port: %d", remote_ip, rdomain, remote_port);
+	//MYSQL
 	debug("userauth-request for user %s service %s method %s", user, service, method);
 	debug("attempt %d failures %d", authctxt->attempt, authctxt->failures);
+	//struct LOG_DATA log;
+	//log.user = user;
+	//log.service = service;
+	//log.method = method;
+	//log.attempts = authctxt->attempt;
+	//log.failures = authctxt->failures;
+	//log.from_ip = remote_ip;
+	//log.from_port = remote_port;
+
+	//insert_log(log);
 
 	if ((style = strchr(user, ':')) != NULL)
 		*style++ = 0;

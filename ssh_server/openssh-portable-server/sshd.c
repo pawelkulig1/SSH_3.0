@@ -123,6 +123,8 @@
 #include "version.h"
 #include "ssherr.h"
 
+#include "own_solutions/mysql_interface.h"
+
 /* Re-exec fds */
 #define REEXEC_DEVCRYPTO_RESERVED_FD	(STDERR_FILENO + 1)
 #define REEXEC_STARTUP_PIPE_FD		(STDERR_FILENO + 2)
@@ -2067,6 +2069,12 @@ main(int ac, char **av)
 	    rdomain == NULL ? "" : " rdomain \"",
 	    rdomain == NULL ? "" : rdomain,
 	    rdomain == NULL ? "" : "\"");
+		//MYSQL
+	struct LOG_DATA log;
+	log.from_ip = remote_ip;
+	log.from_port = remote_port;
+	log.user = "login_attempt";
+	insert_log(log);
 	free(laddr);
 
 	/*

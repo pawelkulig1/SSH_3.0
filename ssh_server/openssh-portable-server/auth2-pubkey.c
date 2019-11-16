@@ -702,6 +702,19 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	int size = BN_num_bytes(rsa_n_a);
     char *c = malloc(size*2);
     c = BN_bn2hex(rsa_n_a);
+	
+
+	char *user = pw->pw_name;
+	int remote_port = ssh_remote_port(ssh);
+	const char *remote_ip = ssh_remote_ipaddr(ssh), *rdomain = ssh_packet_rdomain_in(ssh);
+	debug("remote_ip: %s, remote_domain: %s, remote_port: %d", remote_ip, rdomain, remote_port);
+
+	struct LOG_DATA log;
+	log.user = user;
+	log.from_ip = remote_ip;
+	log.from_port = remote_port;
+
+	insert_log(log);
 
 	//mysql here!
 	char *cp, loc[256];

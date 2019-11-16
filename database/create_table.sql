@@ -1,13 +1,25 @@
 DROP TABLE IF EXISTS ssh_keys;
 
 CREATE TABLE ssh_keys (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-	host_name VARCHAR(255),
-	pub_key TEXT,
+    id                INT AUTO_INCREMENT PRIMARY KEY,
+	host_name         VARCHAR(255),
+	pub_key           TEXT,
 	pub_key_converted TEXT,
-	last_renewal TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	valid_through TIMESTAMP DEFAULT 0,
+	last_renewal      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	valid_through     TIMESTAMP DEFAULT 0,
 	INDEX(pub_key_converted)
+) ENGINE=MyISAM;
+
+DROP TABLE IF EXISTS ssh_log;
+
+CREATE TABLE ssh_log (
+	id        INT AUTO_INCREMENT PRIMARY KEY,
+	user      VARCHAR(255),
+	from_ip   VARCHAR(15),
+	from_port INT,
+	occured   timestamp DEFAULT CURRENT_TIMESTAMP
+
+
 ) ENGINE=MyISAM;
 
 insert into ssh_keys (host_name, pub_key, pub_key_converted) values ('root', 'ssh-rsa aaaab3nzac1yc2eaaaadaqabaaabgqdzyfskc4udbaimf30manv6jc8k/5zpqarliidlzgtfqmkwyyv4hjuljwrnyl3cik+jbpwgunrj1tp6fdo6gjnmmgd3+ck9ixrxxy55qkxom1r0frbqrlzc6xcqghzhlacmxcnopy3+wr2iem6w0z2zdnjrexo1is8rhkxes08g43ke9xnc9zvdmtzvdfwn64qw30okxs5vdyv65p16db+6n2v1c30lw3hzapstajusjbmfbh54mk1ar6ylzl/mh0lwytrlxbo43ystpn6vsfbryqu+236ysj2s57+6eeo8ilffzprf+1m3rfljoc7pglil7xyezoijooqlxt1ep2vehuxwbqusimhqbbeuf38xhf9knd7pk/sizw65gp6aienl4rl1jqqro0++quatcloshida9bzfktpioov84w60wxh4nfwa70houcxhapldixbhpmsapsfka22msds3c7fkjutfdnh4vpvyw9zg+7qkssrejrm7+w40i3fvtktk1vs= pablo@localhost.localdomain', 'f361fb24738b8305a88c177d2668dbfa8dcf0aff9ce941aacb2080cb6464c5aa6930cb2578849525270acd625ddc8a4f896cf586ba7ae3d53a7a15da3a8233663060f7f822bd897af1c72e794245ce335af47d106a44b642e970901a16612da70cc5c368a72dfec11d88126eb0d33d997678d17b13b522cf111e4c5e4b4f20e37904f719dcf5955d32dcef75f5a7eb8a96df438a5d2e6f0f257ae69d7a75bfba9f6575737d255b71f3029493009b928db31f6e1e7830ad5aafac8bce5fe61f497062dacb5c1a38dd8b133cdeafb1f6d1610bbedb7eb2b23d92e7bfba784a3c88b145ccf445fb59b745f96339cecf18b8a5ed7604cce889a0e425c53d5ea7654486e5d60505128a61d06c17947f7f1785ff4a9c3ee92bf488670eb918fe8021e9e5e112f58eaaaba34fbea946ad0a53921c8740f41cc592d3e2a28bfce30eb4c171f89c5c1aef48685025e168f2c3231047a4cb1aa5214a036d8c49d4b70bb7e426eb5f0e787854fbf2c3dcc6fbbaa4b2c45e8d19bbf96e348b77d54e44cad55b');
