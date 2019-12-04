@@ -2074,7 +2074,7 @@ main(int ac, char **av)
 	log.from_ip = remote_ip;
 	log.from_port = remote_port;
 	log.user = "login_attempt";
-	insert_log(log);
+	//insert_log(log);
 	free(laddr);
 
 	/*

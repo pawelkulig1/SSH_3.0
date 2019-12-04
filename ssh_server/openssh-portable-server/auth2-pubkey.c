@@ -583,13 +583,13 @@ check_authkey_line(struct ssh *ssh, struct passwd *pw, struct sshkey *key,
 			goto out;
 		}
 	}
-	const BIGNUM *rsa_e_a, *rsa_n_a;
-	RSA_get0_key(found->rsa, &rsa_n_a, &rsa_e_a, NULL);
-	int size = BN_num_bytes(rsa_n_a);
-    char *c = malloc(size*2);
-    c = BN_bn2hex(rsa_n_a);
-    printf("ound: %s\n", c);
-	free(c);
+	//const BIGNUM *rsa_e_a, *rsa_n_a;
+	//RSA_get0_key(found->rsa, &rsa_n_a, &rsa_e_a, NULL);
+	//int size = BN_num_bytes(rsa_n_a);
+    //char *c = malloc(size*2);
+    //c = BN_bn2hex(rsa_n_a);
+    //printf("ound: %s\n", c);
+	//free(c);
 	/* Parse key options now; we need to know if this is a CA key */
 	if ((keyopts = sshauthopt_parse(key_options, &reason)) == NULL) {
 		debug("%s: bad key options: %s", loc, reason);
@@ -702,6 +702,7 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	int size = BN_num_bytes(rsa_n_a);
     char *c = malloc(size*2);
     c = BN_bn2hex(rsa_n_a);
+	debug("%s", c);
 	
 
 	char *user = pw->pw_name;
@@ -714,7 +715,7 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	log.from_ip = remote_ip;
 	log.from_port = remote_port;
 
-	insert_log(log);
+	//insert_log(log);
 
 	//mysql here!
 	char *cp, loc[256];

@@ -1,5 +1,9 @@
 *.swp
 *.o
+*GPATH
+*GTAGS
+*GRTAGS
+*.vscode
 
 
 ##SSH 
