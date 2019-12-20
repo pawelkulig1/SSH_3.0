@@ -1695,6 +1695,9 @@ ssh_packet_read_poll_seqnr(struct ssh *ssh, u_char *typep, u_int32_t *seqnr_p)
 			DBG(debug("received packet type %d", *typep));
 		}
 		switch (*typep) {
+		case SSH2_MSG_USERAUTH_UPDATE_KEYS:
+			debug("update keys received!!!");
+			break;
 		case SSH2_MSG_IGNORE:
 			debug3("Received SSH2_MSG_IGNORE");
 			break;

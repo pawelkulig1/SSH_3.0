@@ -1185,7 +1185,9 @@ kex_exchange_identification(struct ssh *ssh, int timeout_ms,
 		error("%s: sshbuf_putf: %s", __func__, ssh_err(r));
 		goto out;
 	}
+	//sshbuf_putf(our_version, "dupa123");
 
+	debug("kex.c: 1189: %s \n", our_version);
 	if (atomicio(vwrite, ssh_packet_get_connection_out(ssh),
 	    sshbuf_mutable_ptr(our_version),
 	    sshbuf_len(our_version)) != sshbuf_len(our_version)) {

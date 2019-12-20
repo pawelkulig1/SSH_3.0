@@ -4,6 +4,8 @@
 *GTAGS
 *GRTAGS
 *.vscode
+*.DS_STORE
+*.pcap
 
 
 ##SSH 

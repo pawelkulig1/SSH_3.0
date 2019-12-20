@@ -15,5 +15,6 @@ RUN dnf install make -y && \
 	dnf install openssl-devel -y && \
 	dnf install gdb -y && \
 	dnf install mysql-devel -y && \
-	dnf install procps -y
+	dnf install procps -y && \
+	dnf install tcpdump -y
 

@@ -1493,6 +1493,8 @@ main(int ac, char **av)
 	ssh_login(ssh, &sensitive_data, host, (struct sockaddr *)&hostaddr,
 	    options.port, pw, timeout_ms);
 
+	//SSH_3.0 here we know that we are authenticated
+
 	if (ssh_packet_connection_is_on_socket(ssh)) {
 		verbose("Authenticated to %s ([%s]:%d).", host,
 		    ssh_remote_ipaddr(ssh), ssh_remote_port(ssh));
