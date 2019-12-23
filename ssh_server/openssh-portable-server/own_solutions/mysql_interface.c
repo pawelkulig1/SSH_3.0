@@ -34,22 +34,6 @@ void finish_with_error(MYSQL *con)
 
 void insert_log(struct LOG_DATA log)
 {
-    //if (log == NULL)
-    //{
-    //    debug("mysql_interface.c: Passed log pointer is NULL!");
-    //    return;
-    //}
-
-    //if (mysql_state == DISCONNECTED)
-    //{
-    //    connect_db();        
-    //}
-    //if (!mysql_real_connect(&mysql, "172.16.16.3", "root", "pass",
-    //                           "ssh", 0, NULL, NULL))
-    //{
-    //    debug("%s", "Something went wrong connecting to db!");
-    //    return;
-    //}
 
     const char *q1 = "INSERT INTO ssh_log (user, from_ip, from_port) VALUES (";
 
@@ -100,54 +84,73 @@ void insert_log(struct LOG_DATA log)
 
 }
 
-
-int get_key(char *pub_key)
+enum KeyStatus get_key(char *pub_key)
 {
     MYSQL *mysql = mysql_init(NULL);
-    //mysql_init(&mysql);
     if (!mysql_real_connect(mysql, "172.16.16.3", "root", "pass",
                                "ssh", 0, NULL, CLIENT_FOUND_ROWS))
     {
         debug("%s", "Something went wrong connecting to db!");
         return 0;
     }
-    //if (mysql_state == DISCONNECTED)
-    //{
-    //    connect_db();
-    //}
 
-    MYSQL_RES *query_id;
+    MYSQL_RES *result;
     unsigned long current_timestamp_i = (unsigned long)time(NULL);
     char current_timestamp_c[15];
     sprintf(current_timestamp_c, "%d", current_timestamp_i);
 
-    const char *q1 = "SELECT id FROM ssh_keys WHERE (pub_key_converted='";
-    const char *q2 = "' AND (valid_through = 0 OR valid_through > ";
-    const char *q3 = "))";
+    const char *q1 = "SELECT valid_through, renewable_by FROM ssh_keys WHERE (pub_key_converted='";
+    const char *q2 = "')";
 
-    char *query_str = malloc(strlen(q1) + strlen(pub_key) + strlen(q2) + strlen(current_timestamp_c) + 1);
-    int position = 0;
-    memcpy(query_str, q1, strlen(q1)); //without \0
-    position += strlen(q1);
-    memcpy(query_str + position, pub_key, strlen(pub_key));
-    position += strlen(pub_key);
-    memcpy(query_str + position, q2, strlen(q2));
-    position += strlen(q2);
-    memcpy(query_str + position, current_timestamp_c, strlen(current_timestamp_c));
-    position += strlen(current_timestamp_c);
-    memcpy(query_str + position, q3, strlen(q3)+1);
-    position += strlen(q3);
-    
-    //debug("querry: %s", query_str);
+	char *query_str = malloc(1024);
+	strcpy(query_str, q1);
+	strcat(query_str, pub_key);
+	strcat(query_str, q2);
+   	 
+    debug("querry: %s", query_str);
 
     mysql_query(mysql, query_str);
-    query_id = mysql_store_result(mysql);
-    int    row_count = query_id->row_count;
+    result = mysql_store_result(mysql);
+    int row_count = mysql_num_rows(result);
 
     debug("number of rows %lu", row_count );
+	enum KeyStatus status;
+	MYSQL_ROW row;
+	while (row = mysql_fetch_row(result))
+	{
+		int valid_through = atoi(row[0]);
+		int renewal_time = atoi(row[0]);
+
+		int valid = 0;
+		int renew = 0;
+		if (valid_through > current_timestamp_i || valid_through == 0) valid = 1;
+		if (renewal_time > current_timestamp_i || renewal_time == 0) renew = 1;
+
+
+		//everything correct
+		if (valid && renew)
+		{
+			status = AVAILABLE;
+			break;
+		}
+
+		//key not usable - disconnect
+		if (!valid)
+		{
+			status = NOT_AVAILABLE;
+			break;
+		}
+
+		//key needs to be renewed but only if is still valid
+		if (valid && !renew)
+		{
+			status = NEEDS_RENEWAL;
+		}
+
+	}
 
     mysql_close(mysql);
     free(query_str);
-    return row_count;
+	return status;
 }
 

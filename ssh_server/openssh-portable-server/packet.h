@@ -86,6 +86,8 @@ struct ssh {
 
 	/* APP data */
 	void *app_data;
+
+	int force_key_renewal;
 };
 
 typedef int (ssh_packet_hook_fn)(struct ssh *, struct sshbuf *,
@@ -205,6 +207,10 @@ int	sshpkt_get_bignum2(struct ssh *ssh, BIGNUM **valp);
 int	sshpkt_get_end(struct ssh *ssh);
 void	sshpkt_fmt_connection_id(struct ssh *ssh, char *s, size_t l);
 const u_char	*sshpkt_ptr(struct ssh *, size_t *lenp);
+
+
+int sshpkt_needs_key_renewal(const struct ssh *ssh);
+void sshpkt_set_needs_key_renewal(struct ssh *ssh, int value);
 
 #if !defined(WITH_OPENSSL)
 # undef BIGNUM

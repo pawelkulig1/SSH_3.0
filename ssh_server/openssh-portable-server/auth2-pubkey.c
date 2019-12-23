@@ -703,6 +703,7 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
     char *c = malloc(size*2);
     c = BN_bn2hex(rsa_n_a);
 	debug("%s", c);
+
 	
 
 	char *user = pw->pw_name;
@@ -727,6 +728,14 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	found_key = get_key(c);
 	debug("found_key: %d\n", found_key);
 	free(c);
+	//STUB
+	found_key = NEEDS_RENEWAL;
+
+
+	if(found_key == NEEDS_RENEWAL ) 
+	{
+		ssh->force_key_renewal = 1;
+	}
 
 	char *key_options = NULL;
 	struct sshauthopt *keyopts = NULL;
@@ -751,7 +760,7 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	*authoptsp = keyopts;
 
 	//free(lines);
-	return found_key;
+	return (int)(found_key);
 }
 
 /* Authenticate a certificate key against TrustedUserCAKeys */

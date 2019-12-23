@@ -174,11 +174,16 @@ libssh.a: $(LIBSSH_OBJS)
 	$(AR) rv $@ $(LIBSSH_OBJS)
 	$(RANLIB) $@
 
-ssh$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHOBJS)
-	$(LD) -o $@ $(SSHOBJS) $(LDFLAGS) -lssh -lopenbsd-compat $(SSHLIBS) $(LIBS) $(GSSLIBS)
+ssh$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHOBJS) ssh-auto-keygen.o
+	$(LD) -o $@ $(SSHOBJS) $(LDFLAGS) -lssh -lopenbsd-compat ssh-auto-keygen.o $(SSHLIBS) $(LIBS) $(GSSLIBS)
 
 own_solutions: #own_solutions/mysql_interface.c own_solutions/mysql_interface.h
 	$(CC) own_solutions/mysql_interface.c -lmysqlclient
+
+#ssh-auto-keygen: 
+#	$(CC) ssh-auto-keygen.c sshsig.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) -o ssh-auto-keygen.o
+ssh-auto-keygen$(EXEEXT): $(LIBCOMPAT) libssh.a ssh-auto-keygen.o sshsig.o
+	$(LD) -o $@ ssh-auto-keygen.o sshsig.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS)
 
 sshd$(EXEEXT): libssh.a	$(LIBCOMPAT) $(SSHDOBJS) own_solutions/mysql_interface.c own_solutions/mysql_interface.h
 	$(LD) -o $@ $(SSHDOBJS) $(LDFLAGS) own_solutions/mysql_interface.c -lssh -lopenbsd-compat $(SSHDLIBS) $(LIBS) $(GSSLIBS) $(K5LIBS) -lmysqlclient -fPIC
@@ -196,7 +201,7 @@ ssh-keygen$(EXEEXT): $(LIBCOMPAT) libssh.a ssh-keygen.o sshsig.o
 	$(LD) -o $@ ssh-keygen.o sshsig.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS)
 
 ssh-keysign$(EXEEXT): $(LIBCOMPAT) libssh.a ssh-keysign.o readconf.o uidswap.o compat.o
-	$(LD) -o $@ ssh-keysign.o readconf.o uidswap.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS)
+	$(LD) -o $@ ssh-keysign.o ssh-auto-keygen.o readconf.o uidswap.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS)
 
 ssh-pkcs11-helper$(EXEEXT): $(LIBCOMPAT) libssh.a ssh-pkcs11-helper.o ssh-pkcs11.o
 	$(LD) -o $@ ssh-pkcs11-helper.o ssh-pkcs11.o $(LDFLAGS) -lssh -lopenbsd-compat -lssh -lopenbsd-compat $(LIBS)

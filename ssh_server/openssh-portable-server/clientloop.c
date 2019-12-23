@@ -112,6 +112,8 @@
 #include "ssherr.h"
 #include "hostfile.h"
 
+#include "ssh-auto-keygen.h"
+
 /* import options */
 extern Options options;
 
@@ -1326,21 +1328,7 @@ client_loop(struct ssh *ssh, int have_pty, int escape_char_arg,
 		    client_channel_closed, 0);
 	}
 
-
 	//TODO here regenerate keys!
-	
-	//r = sshpkt_start(ssh, 54);
-	//sshpkt_put_cstring(ssh, "dupa");
-	//sshpkt_send(ssh);
-	char *buff2 = "test";
-	if ((r = sshpkt_start(ssh, SSH2_MSG_USERAUTH_UPDATE_KEYS)) != 0 ||
-	    (r = sshpkt_put_u8(ssh, 0)) != 0 || /* always display */
-	    (r = sshpkt_put_cstring(ssh, buff2)) != 0 ||
-	    (r = sshpkt_put_cstring(ssh, "")) != 0 ||
-	    (r = sshpkt_send(ssh)) != 0 ||
-	    (r = ssh_packet_write_wait(ssh)) != 0)
-		fatal("%s: %s", __func__, ssh_err(r));
-
 
 	/* Main loop of the client for the interactive session mode. */
 	while (!quit_pending) {
@@ -1350,6 +1338,13 @@ client_loop(struct ssh *ssh, int have_pty, int escape_char_arg,
 
 		if (session_closed && !channel_still_open(ssh))
 			break;
+		
+		if (sshpkt_needs_key_renewal(ssh)) {
+			sshpkt_set_needs_key_renewal(ssh, 0);
+			debug("key renewal initialized!");
+	//		do_gen_all_hostkeys();
+			generate_public_private_keys();
+		}
 
 		if (ssh_packet_is_rekeying(ssh)) {
 			debug("rekeying in progress");

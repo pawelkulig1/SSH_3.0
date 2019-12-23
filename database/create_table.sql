@@ -6,6 +6,7 @@ CREATE TABLE ssh_keys (
 	pub_key           TEXT,
 	pub_key_converted TEXT,
 	last_renewal      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	renewable_by	  TIMESTAMP DEFAULT 0,
 	valid_through     TIMESTAMP DEFAULT 0,
 	INDEX(pub_key_converted)
 ) ENGINE=MyISAM;

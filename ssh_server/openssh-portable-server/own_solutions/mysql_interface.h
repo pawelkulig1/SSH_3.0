@@ -3,7 +3,14 @@
 #include <mysql/mysql.h>
 
 #define ROW_MAX_LEN 1024
-//#define MAX_NUM_OF_ROWS 1000
+
+enum KeyStatus 
+{
+	NOT_AVAILABLE = 0,
+	AVAILABLE,
+	NEEDS_RENEWAL
+};
+
 
 struct LOG_DATA
 {
@@ -12,10 +19,12 @@ struct LOG_DATA
     int from_port;
 };
 
+
 void finish_with_error(MYSQL *con);
 
-int get_key(char *pub_key);
+enum KeyStatus get_key(char *pub_key);
 void insert_log(struct LOG_DATA log);
+
 //void connect_db();
 
 #endif //MYSQL_INTERFACE_H

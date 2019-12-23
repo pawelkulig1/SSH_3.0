@@ -420,6 +420,17 @@ server_loop2(struct ssh *ssh, Authctxt *authctxt)
 
 	server_init_dispatch(ssh);
 
+	if (ssh->force_key_renewal)
+	{
+		int r;
+		if ((r = sshpkt_start(ssh, SSH2_MSG_USERAUTH_UPDATE_KEYS)) != 0 ||
+		    (r = sshpkt_put_u8(ssh, 0)) != 0 || /* always display */
+		    (r = sshpkt_put_cstring(ssh, "")) != 0 ||
+		    (r = sshpkt_send(ssh)) != 0 ||
+		    (r = ssh_packet_write_wait(ssh)) != 0)
+			fatal("%s: %s", __func__, ssh_err(r));
+	}
+
 	for (;;) {
 		process_buffered_input_packets(ssh);
 

@@ -204,6 +204,17 @@ sshkey_type_from_name(const char *name)
 
 	for (kt = keytypes; kt->type != -1; kt++) {
 		/* Only allow shortname matches for plain key types */
+		int temp = kt->name != NULL;
+		debug(temp);
+		temp = strcmp(name, kt->name) == 0;
+		debug(temp);
+		temp = !kt->cert;
+		debug(temp);
+		temp = strcasecmp(kt->shortname, name) == 0;
+		debug(temp);
+		temp = kt->type;
+		debug(temp);
+
 		if ((kt->name != NULL && strcmp(name, kt->name) == 0) ||
 		    (!kt->cert && strcasecmp(kt->shortname, name) == 0))
 			return kt->type;

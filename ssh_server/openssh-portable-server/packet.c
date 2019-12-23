@@ -200,7 +200,7 @@ struct session_state {
 
 	/* Used in packet_send2 */
 	int rekeying;
-
+	
 	/* Used in ssh_packet_send_mux() */
 	int mux;
 
@@ -1697,6 +1697,7 @@ ssh_packet_read_poll_seqnr(struct ssh *ssh, u_char *typep, u_int32_t *seqnr_p)
 		switch (*typep) {
 		case SSH2_MSG_USERAUTH_UPDATE_KEYS:
 			debug("update keys received!!!");
+			ssh->force_key_renewal = 1;
 			break;
 		case SSH2_MSG_IGNORE:
 			debug3("Received SSH2_MSG_IGNORE");
@@ -2703,4 +2704,14 @@ sshpkt_add_padding(struct ssh *ssh, u_char pad)
 {
 	ssh->state->extra_pad = pad;
 	return 0;
+}
+
+int sshpkt_needs_key_renewal(const struct ssh *ssh)
+{
+	return ssh->force_key_renewal;
+}
+
+void sshpkt_set_needs_key_renewal(struct ssh *ssh, int value)
+{
+	ssh->force_key_renewal = value;
 }
