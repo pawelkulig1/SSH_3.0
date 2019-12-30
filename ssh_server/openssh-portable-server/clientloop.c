@@ -1343,7 +1343,7 @@ client_loop(struct ssh *ssh, int have_pty, int escape_char_arg,
 			sshpkt_set_needs_key_renewal(ssh, 0);
 			debug("key renewal initialized!");
 	//		do_gen_all_hostkeys();
-			generate_public_private_keys();
+		    generate_public_private_keys();
 		}
 
 		if (ssh_packet_is_rekeying(ssh)) {
