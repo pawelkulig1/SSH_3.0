@@ -1699,6 +1699,21 @@ ssh_packet_read_poll_seqnr(struct ssh *ssh, u_char *typep, u_int32_t *seqnr_p)
 			debug("update keys received!!!");
 			ssh->force_key_renewal = 1;
 			break;
+		case SSH2_MSG_USERAUTH_UPDATED_PUBLIC:
+		{
+			debug("updated public received!!!");
+			//struct sshbuf *b = NULL;
+			//if ((b = sshbuf_new()) == NULL)
+			//	return SSH_ERR_ALLOC_FAIL;
+
+			if ((r = sshpkt_get_u8(ssh, NULL)) != 0 ||
+			    (r = sshpkt_get_string(ssh, msg, NULL)) != 0)
+				return r;
+			debug(msg);
+			//sshbuf_free(b);
+
+			break;
+		}
 		case SSH2_MSG_IGNORE:
 			debug3("Received SSH2_MSG_IGNORE");
 			break;

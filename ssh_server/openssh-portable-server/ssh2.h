@@ -114,6 +114,7 @@
 #define SSH2_MSG_USERAUTH_SUCCESS			52
 #define SSH2_MSG_USERAUTH_BANNER			53
 #define SSH2_MSG_USERAUTH_UPDATE_KEYS		54
+#define SSH2_MSG_USERAUTH_UPDATED_PUBLIC	55
 
 /* user authentication: method specific, can be reused */
 

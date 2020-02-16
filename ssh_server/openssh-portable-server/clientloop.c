@@ -1328,7 +1328,6 @@ client_loop(struct ssh *ssh, int have_pty, int escape_char_arg,
 		    client_channel_closed, 0);
 	}
 
-	//TODO here regenerate keys!
 
 	/* Main loop of the client for the interactive session mode. */
 	while (!quit_pending) {
@@ -1342,8 +1341,20 @@ client_loop(struct ssh *ssh, int have_pty, int escape_char_arg,
 		if (sshpkt_needs_key_renewal(ssh)) {
 			sshpkt_set_needs_key_renewal(ssh, 0);
 			debug("key renewal initialized!");
-	//		do_gen_all_hostkeys();
-		    generate_public_private_keys();
+			struct sshbuf *b = NULL;
+		    if(!generate_public_private_keys(b))
+			{
+				debug("sendig updated public key!");
+				int r;
+				if ((r = sshpkt_start(ssh, SSH2_MSG_USERAUTH_UPDATED_PUBLIC)) != 0 ||
+				    (r = sshpkt_put_u8(ssh, 0)) != 0 || /* always display */
+					(r = sshpkt_putb(ssh, b)) != 0 || 
+				    //(r = sshpkt_put_cstring(ssh, "")) != 0 ||
+				    (r = sshpkt_send(ssh)) != 0 ||
+				    (r = ssh_packet_write_wait(ssh)) != 0)
+					fatal("%s: %s", __func__, ssh_err(r));
+			}
+
 		}
 
 		if (ssh_packet_is_rekeying(ssh)) {

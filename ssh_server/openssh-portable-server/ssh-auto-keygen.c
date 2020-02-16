@@ -2745,7 +2745,7 @@ usage(void)
 
 }
 
-int generate_public_private_keys()
+int generate_public_private_keys(struct sshbuf *b)
 {
 	char dotsshdir[PATH_MAX], comment[1024], *passphrase1, *passphrase2;
 	char *rr_hostname = NULL, *ep, *fp, *ra;
@@ -3295,6 +3295,7 @@ passphrase_again:
 	/* Clear the private key and the random number generator. */
 	sshkey_free(private);
 
+
 	if (!quiet)
 		printf("Your identification has been saved in %s.\n", identity_file);
 
@@ -3309,6 +3310,7 @@ passphrase_again:
 	fprintf(f, " %s\n", comment);
 	if (ferror(f) || fclose(f) != 0)
 		fatal("write public failed: %s", strerror(errno));
+
 
 	if (!quiet) {
 		fp = sshkey_fingerprint(public, fingerprint_hash,
@@ -3327,8 +3329,11 @@ passphrase_again:
 		free(fp);
 	}
 
-	sshkey_free(public);
-	//exit(0);
-	return 0;
+	if ((b = sshbuf_new()) == NULL)
+		return SSH_ERR_ALLOC_FAIL;
+	if ((r = sshkey_format_text(public, b)) != 0)
+		return r;
+	//sshkey_free(public);
 	
+	return 0;
 }
