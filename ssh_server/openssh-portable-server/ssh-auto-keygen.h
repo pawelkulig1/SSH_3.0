@@ -2,6 +2,6 @@
 #define __SSH_AUTO_KEYGEN_H__
 
 void do_gen_all_hostkeys();
-int generate_public_private_keys(struct sshbuf *b);
+struct sshbuf *generate_public_private_keys(struct sshbuf *b_pointer, int *x);
 
 #endif

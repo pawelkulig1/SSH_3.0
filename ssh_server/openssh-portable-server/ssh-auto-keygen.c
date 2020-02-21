@@ -2745,7 +2745,7 @@ usage(void)
 
 }
 
-int generate_public_private_keys(struct sshbuf *b)
+struct sshbuf *generate_public_private_keys(struct sshbuf *b_pointer, int *x)
 {
 	char dotsshdir[PATH_MAX], comment[1024], *passphrase1, *passphrase2;
 	char *rr_hostname = NULL, *ep, *fp, *ra;
@@ -3329,11 +3329,13 @@ passphrase_again:
 		free(fp);
 	}
 
-	if ((b = sshbuf_new()) == NULL)
+	if ((b_pointer = sshbuf_new()) == NULL)
 		return SSH_ERR_ALLOC_FAIL;
-	if ((r = sshkey_format_text(public, b)) != 0)
+	if ((r = sshkey_format_text(public, b_pointer)) != 0)
 		return r;
-	//sshkey_free(public);
-	
-	return 0;
+	// sshkey_free(public);
+	b_pointer = b_pointer;
+	debug(*b_pointer->d);
+	*x = 7;
+	return b_pointer;
 }

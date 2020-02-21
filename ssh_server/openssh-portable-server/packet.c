@@ -1706,8 +1706,10 @@ ssh_packet_read_poll_seqnr(struct ssh *ssh, u_char *typep, u_int32_t *seqnr_p)
 			//if ((b = sshbuf_new()) == NULL)
 			//	return SSH_ERR_ALLOC_FAIL;
 
+			int total_size = 0;
 			if ((r = sshpkt_get_u8(ssh, NULL)) != 0 ||
-			    (r = sshpkt_get_string(ssh, msg, NULL)) != 0)
+				(r = sshpkt_get_u32(ssh, size)) != 0 ||
+			    (r = sshpkt_get_string(ssh, &msg, NULL)) != 0)
 				return r;
 			debug(msg);
 			//sshbuf_free(b);
