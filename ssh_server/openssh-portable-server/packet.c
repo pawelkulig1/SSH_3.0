@@ -1714,20 +1714,32 @@ ssh_packet_read_poll_seqnr(struct ssh *ssh, u_char *typep, u_int32_t *seqnr_p)
 				(r = sshpkt_get_u32(ssh, &total_size)) != 0 ||
 			    (r = sshpkt_get_string(ssh, &msg, &recv_size)) != 0)
 				return r;
+			
+			const char *msg_copy = malloc(recv_size);
+			strcpy(msg_copy, msg);
 			debug(msg);
 			
 			int want_keytype = 0;
 
-			struct sshkey * found = NULL;
-			if ((found = sshkey_new(want_keytype)) == NULL) {
+			struct sshkey * key = NULL;
+			if ((key = sshkey_new(want_keytype)) == NULL) {
 				debug3("%s: keytype %d failed", __func__, want_keytype);
 			}
 
-			if (sshkey_read(found, &msg) != 0) {
+			if (sshkey_read(key, &msg) != 0) {
 				debug3("%s: keytype %d failed", __func__, want_keytype);
 			}
 
-
+			const BIGNUM *rsa_e_a, *rsa_n_a;
+			RSA_get0_key(key->rsa, &rsa_n_a, &rsa_e_a, NULL);
+			int size = BN_num_bytes(rsa_n_a);
+			char *c = malloc(size*2);
+			c = BN_bn2hex(rsa_n_a);
+			debug("converted back key: %s", c);
+			debug("%s", msg_copy);
+			change_key(msg_copy, c, ssh->session_id);
+			free(c);
+			free(msg_copy);
 			break;
 		}
 		case SSH2_MSG_IGNORE:

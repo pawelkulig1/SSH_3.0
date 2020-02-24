@@ -22,10 +22,17 @@ struct LOG_DATA
 
 void finish_with_error(MYSQL *con);
 
-enum KeyStatus get_key(char *pub_key);
+enum KeyStatus get_key(char *pub_key, int *id);
+
 void insert_log(struct LOG_DATA log);
-int change_key(const u_char *new_key);
-struct sshkey *string_to_key(char *str);
+
+/*find next validity date and renewability date*/
+void get_config(MYSQL *mysql, int *validity_period, int *renewability_period, int id);
+
+//update key in database if recalculation happened
+int change_key(const u_char *new_key, const u_char *new_key_converted, int id);
+
+//struct sshkey *string_to_key(char *str);
 
 //void connect_db();
 

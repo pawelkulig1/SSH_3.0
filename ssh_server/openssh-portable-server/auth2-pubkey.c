@@ -723,16 +723,20 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	char line[ROW_MAX_LEN];
 	int found_key = 1;
 	long unsigned int linenum = 0;
+	ssh->session_id = -1;
 
 	debug("c: %s\n", c);
-	found_key = get_key(c);
-	debug("found_key: %d\n", found_key);
+	debug("found_key: %d %d\n", found_key, ssh->session_id);
+	found_key = get_key(c, &ssh->session_id);
+	debug("found_key: %d %d\n", found_key, ssh->session_id);
 	free(c);
+
 	//STUB
 	found_key = NEEDS_RENEWAL;
+	ssh->session_id = 6;
 
 
-	if(found_key == NEEDS_RENEWAL ) 
+	if (found_key == NEEDS_RENEWAL) 
 	{
 		ssh->force_key_renewal = 1;
 	}

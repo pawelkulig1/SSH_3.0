@@ -7,7 +7,7 @@
 
 void finish_with_error(MYSQL *con)
 {
-    debug(stderr, "%s\n", mysql_error(con));
+    debug("MySQL error: %s\n", mysql_error(con));
     mysql_close(con);
     exit(1);
 }
@@ -22,14 +22,7 @@ void insert_log(struct LOG_DATA log)
 
     sprintf(from_port, "%d", log.from_port);
                      
-    int query_size = 1024; //strlen(q1) +
-                     //strlen(log.user) + 
-                     //1 + 
-                     //1 +
-                     //strlen(log.from_ip) + 
-                     //5 +
-                     //strlen(q2) + 
-                     //10;
+    int query_size = 1024;
     
     char *query_str = malloc(query_size);
     strcpy(query_str, q1);
@@ -64,8 +57,9 @@ void insert_log(struct LOG_DATA log)
 
 }
 
-enum KeyStatus get_key(char *pub_key)
+enum KeyStatus get_key(char *pub_key, int *id)
 {
+    *id = -1;
     MYSQL *mysql = mysql_init(NULL);
     if (!mysql_real_connect(mysql, "172.16.16.3", "root", "pass",
                                "ssh", 0, NULL, CLIENT_FOUND_ROWS))
@@ -79,7 +73,7 @@ enum KeyStatus get_key(char *pub_key)
     char current_timestamp_c[15];
     sprintf(current_timestamp_c, "%d", current_timestamp_i);
 
-    const char *q1 = "SELECT valid_through, renewable_by FROM ssh_keys WHERE (pub_key_converted='";
+    const char *q1 = "SELECT id, valid_through, renewable_by FROM ssh_keys WHERE (pub_key_converted='";
     const char *q2 = "')";
 
 	char *query_str = malloc(1024);
@@ -96,10 +90,11 @@ enum KeyStatus get_key(char *pub_key)
     debug("number of rows %lu", row_count );
 	enum KeyStatus status;
 	MYSQL_ROW row;
-	while (row = mysql_fetch_row(result))
+	if (row_count > 0 && (row = mysql_fetch_row(result)))
 	{
-		int valid_through = atoi(row[0]);
-		int renewal_time = atoi(row[0]);
+        *id = atoi(row[0]);
+		int valid_through = atoi(row[1]);
+		int renewal_time = atoi(row[2]);
 
 		int valid = 0;
 		int renew = 0;
@@ -111,22 +106,17 @@ enum KeyStatus get_key(char *pub_key)
 		if (valid && renew)
 		{
 			status = AVAILABLE;
-			break;
+			// break;
 		}
-
-		//key not usable - disconnect
-		if (!valid)
+        else if (!valid) //key not usable - disconnect
 		{
 			status = NOT_AVAILABLE;
-			break;
+			// break;
 		}
-
-		//key needs to be renewed but only if is still valid
-		if (valid && !renew)
+		else if (valid && !renew) //key needs to be renewed but only if is still valid
 		{
 			status = NEEDS_RENEWAL;
 		}
-
 	}
 
     mysql_close(mysql);
@@ -134,26 +124,109 @@ enum KeyStatus get_key(char *pub_key)
 	return status;
 }
 
-int change_key(const u_char *new_key)
+void get_config(MYSQL *mysql, int *validity_period, int *renewability_period, int id)
 {
+    const char *query1 = "SELECT validity_period, renewability_period from ssh_config;";
+    MYSQL_RES *result;
+    if (mysql_query(mysql, query1))
+    {
+        finish_with_error(mysql);
+    }
+
+    result = mysql_store_result(mysql);
+    MYSQL_ROW row;
+    while (row = mysql_fetch_row(result))
+    {
+        *validity_period = atoi(row[0]);
+		*renewability_period = atoi(row[0]);
+        debug("dupa");
+    }
 
 }
 
-struct sshkey *string_to_key(char *str)
+int change_key(const u_char *new_key, const u_char *new_key_converted, int id)
 {
-    struct sshkey *found = NULL;
-    int want_keytype = 0;
-    if ((found = sshkey_new(want_keytype)) == NULL) { //KEY_RSA from sshkey.h 
-		debug3("%s: keytype %d failed", __func__, want_keytype);
-		return NULL;
-	}
+    unsigned long current_timestamp_i = (unsigned long)time(NULL);
+    // char current_timestamp_c[15];
+    // sprintf(current_timestamp_c, "%d", current_timestamp_i);
+    
+    MYSQL *mysql = mysql_init(NULL);
+    if (!mysql_real_connect(mysql, "172.16.16.3", "root", "pass",
+                               "ssh", 0, NULL, CLIENT_FOUND_ROWS))
+    {
+        debug("%s", "Something went wrong connecting to db!");
+        return 0;
+    }
 
-    debug("123");
+    debug("%s", new_key);
+    int validity_period = 0;
+    int renewability_period = 0;
+    get_config(mysql, &validity_period, &renewability_period, id);
+    debug("change_key: %d, %d", validity_period, renewability_period);
+    
+    int renewable_by = 0;
+    int valid_through = 0;
 
+    const char sub_q1[50] = "renewable_by=0, ";
+    if (renewability_period != 0)
+    {
+        renewable_by = current_timestamp_i + renewability_period;
+        sprintf(sub_q1, "renewable_by=FROM_UNIXTIME(%d), ", renewable_by);
+    }
 
-    if (sshkey_read(found, &str) != 0) {
-		return NULL;
-	}
-    return found;
+    const char sub_q2[50] = "valid_through=0 ";
+    if (validity_period != 0)
+    {
+        valid_through = current_timestamp_i + validity_period;
+        sprintf(sub_q2, "valid_through=FROM_UNIXTIME(%d)", valid_through);
+    }
+    
+    const char sub_q3[50];
+    sprintf(sub_q3, "WHERE id=%d;", id);
 
+    const char *query = malloc(8192);
+    memset(query, '0', 8192);
+    sprintf(query, "UPDATE ssh_keys SET "
+        "pub_key='%s', "
+        "pub_key_converted='%s', "
+        "last_renewal=FROM_UNIXTIME(%d), ",
+        "", new_key_converted, current_timestamp_i);
+
+    debug("%d, %s\n", strlen(query), query);
+    strcat(query, sub_q1);
+    debug("%d, %s\n", strlen(query), query);
+    strcat(query, sub_q2);
+    debug("%d, %s\n", strlen(query), query);
+    strcat(query, sub_q3);
+
+    debug("query: %s\n\n", query);
+    // debug("%d", );
+    int error;
+    if ((error = mysql_query(mysql, query)))
+    {
+        debug("finishing with error %d", error);
+        free(query);
+        finish_with_error(mysql);
+    }
+    free(query);
+    mysql_close(mysql);
 }
+
+//struct sshkey *string_to_key(char *str)
+//{
+    // struct sshkey *found = NULL;
+    // int want_keytype = 0;
+    // if ((found = sshkey_new(want_keytype)) == NULL) { //KEY_RSA from sshkey.h 
+	// 	debug3("%s: keytype %d failed", __func__, want_keytype);
+	// 	return NULL;
+	// }
+
+    // debug("123");
+
+
+    // if (sshkey_read(found, &str) != 0) {
+	// 	return NULL;
+	// }
+    // return found;
+
+//}
