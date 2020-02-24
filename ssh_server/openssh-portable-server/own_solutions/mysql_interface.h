@@ -24,6 +24,8 @@ void finish_with_error(MYSQL *con);
 
 enum KeyStatus get_key(char *pub_key);
 void insert_log(struct LOG_DATA log);
+int change_key(const u_char *new_key);
+struct sshkey *string_to_key(char *str);
 
 //void connect_db();
 

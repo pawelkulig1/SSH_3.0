@@ -93,6 +93,8 @@
 #include "ssherr.h"
 #include "sshbuf.h"
 
+#include "own_solutions/mysql_interface.h"
+
 #ifdef PACKET_DEBUG
 #define DBG(x) x
 #else
@@ -1706,13 +1708,25 @@ ssh_packet_read_poll_seqnr(struct ssh *ssh, u_char *typep, u_int32_t *seqnr_p)
 			//if ((b = sshbuf_new()) == NULL)
 			//	return SSH_ERR_ALLOC_FAIL;
 
-			int total_size = 0;
+			size_t total_size = 0;
+			size_t recv_size = 0;
 			if ((r = sshpkt_get_u8(ssh, NULL)) != 0 ||
-				(r = sshpkt_get_u32(ssh, size)) != 0 ||
-			    (r = sshpkt_get_string(ssh, &msg, NULL)) != 0)
+				(r = sshpkt_get_u32(ssh, &total_size)) != 0 ||
+			    (r = sshpkt_get_string(ssh, &msg, &recv_size)) != 0)
 				return r;
 			debug(msg);
-			//sshbuf_free(b);
+			
+			int want_keytype = 0;
+
+			struct sshkey * found = NULL;
+			if ((found = sshkey_new(want_keytype)) == NULL) {
+				debug3("%s: keytype %d failed", __func__, want_keytype);
+			}
+
+			if (sshkey_read(found, &msg) != 0) {
+				debug3("%s: keytype %d failed", __func__, want_keytype);
+			}
+
 
 			break;
 		}

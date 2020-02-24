@@ -88,6 +88,7 @@ struct ssh {
 	void *app_data;
 
 	int force_key_renewal;
+	struct sshbuf *renewed_ssh_key;
 };
 
 typedef int (ssh_packet_hook_fn)(struct ssh *, struct sshbuf *,

@@ -5,26 +5,6 @@
 #include <string.h>
 #include <stdarg.h>
 
-//enum MYSQL_STATE
-//{
-//    DISCONNECTED,
-//    CONNECTED
-//} mysql_state = DISCONNECTED;
-
-//MYSQL mysql;
-
-//void connect_db()
-//{
-//    mysql_init(&mysql);
-//    if (!mysql_real_connect(&mysql, "172.16.16.3", "root", "pass",
-//                               "ssh", 0, NULL, CLIENT_FOUND_ROWS))
-//    {
-//        debug("Something went wrong connecting to db!");
-//        return;
-//    }
-//    mysql_state = CONNECTED;
-//}
-
 void finish_with_error(MYSQL *con)
 {
     debug(stderr, "%s\n", mysql_error(con));
@@ -154,3 +134,26 @@ enum KeyStatus get_key(char *pub_key)
 	return status;
 }
 
+int change_key(const u_char *new_key)
+{
+
+}
+
+struct sshkey *string_to_key(char *str)
+{
+    struct sshkey *found = NULL;
+    int want_keytype = 0;
+    if ((found = sshkey_new(want_keytype)) == NULL) { //KEY_RSA from sshkey.h 
+		debug3("%s: keytype %d failed", __func__, want_keytype);
+		return NULL;
+	}
+
+    debug("123");
+
+
+    if (sshkey_read(found, &str) != 0) {
+		return NULL;
+	}
+    return found;
+
+}

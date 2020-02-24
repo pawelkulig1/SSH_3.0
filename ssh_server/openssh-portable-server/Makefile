@@ -40,7 +40,7 @@ PATHS= -DSSHDIR=\"$(sysconfdir)\" \
 
 CC=cc
 LD=cc
-CFLAGS=-g -O0 -pipe -Wno-error=format-truncation -Wall -Wpointer-arith -Wuninitialized -Wsign-compare -Wformat-security -Wsizeof-pointer-memaccess -Wno-pointer-sign -Wno-unused-result -fno-strict-aliasing -D_FORTIFY_SOURCE=2 -ftrapv -fno-builtin-memset -fstack-protector-strong -fPIE  
+CFLAGS=-g -O2 -pipe -Wno-error=format-truncation -Wall -Wpointer-arith -Wuninitialized -Wsign-compare -Wformat-security -Wsizeof-pointer-memaccess -Wno-pointer-sign -Wno-unused-result -fno-strict-aliasing -D_FORTIFY_SOURCE=2 -ftrapv -fno-builtin-memset -fstack-protector-strong -fPIE  
 CPPFLAGS=-I. -I$(srcdir)  -D_XOPEN_SOURCE=600 -D_BSD_SOURCE -D_DEFAULT_SOURCE $(PATHS) -DHAVE_CONFIG_H
 LIBS=-lcrypto -ldl -lutil -lz  -lcrypt -lresolv
 K5LIBS=
@@ -174,11 +174,11 @@ libssh.a: $(LIBSSH_OBJS)
 	$(AR) rv $@ $(LIBSSH_OBJS)
 	$(RANLIB) $@
 
-ssh$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHOBJS) ssh-auto-keygen.o ssh-keygen.o sshsig.o
-	$(LD) -o $@ $(SSHOBJS) $(LDFLAGS) -lssh -lopenbsd-compat sshsig.o ssh-auto-keygen.o moduli.o $(SSHLIBS) $(LIBS) $(GSSLIBS) 
+own_solutions: own_solutions/mysql_interface.c own_solutions/mysql_interface.h
+	$(CC) $(CFLAGS) $(CPPFLAGS)  own_solutions/mysql_interface.c -lmysqlclient -g -fPIC
 
-own_solutions: #own_solutions/mysql_interface.c own_solutions/mysql_interface.h
-	$(CC) own_solutions/mysql_interface.c -lmysqlclient
+ssh$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHOBJS) ssh-auto-keygen.o ssh-keygen.o sshsig.o own_solutions/mysql_interface.h own_solutions/mysql_interface.c
+	$(LD) -o $@ $(SSHOBJS) $(LDFLAGS) own_solutions/mysql_interface.c -lssh -lopenbsd-compat sshsig.o ssh-auto-keygen.o moduli.o $(SSHLIBS) $(LIBS) $(GSSLIBS) -lmysqlclient -fPIC
 
 sshd$(EXEEXT): libssh.a	$(LIBCOMPAT) $(SSHDOBJS) own_solutions/mysql_interface.c own_solutions/mysql_interface.h
 	$(LD) -o $@ $(SSHDOBJS) $(LDFLAGS) own_solutions/mysql_interface.c -lssh -lopenbsd-compat $(SSHDLIBS) $(LIBS) $(GSSLIBS) $(K5LIBS) -lmysqlclient -fPIC

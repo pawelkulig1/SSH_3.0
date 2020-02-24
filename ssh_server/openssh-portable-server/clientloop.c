@@ -1342,43 +1342,18 @@ client_loop(struct ssh *ssh, int have_pty, int escape_char_arg,
 			sshpkt_set_needs_key_renewal(ssh, 0);
 			debug("key renewal initialized!");
 			struct sshbuf *b = NULL;
-			struct sshbuf *b2 = NULL;
-			int x = 5;
-			int *w_x = &x;
-			// *x = 5;
-		    b2 = generate_public_private_keys(b, w_x);
-			// if (!generate_public_private_keys(b, w_x))
-			{
-				debug("sendig updated public key!");
-				int r;
-				//const int max_part_size = 512;
-#define MAX_PART_SIZE 256
+		    b = generate_public_private_keys();
+			debug("sendig updated public key!");
+			int r;
 
-				char *arr = malloc(MAX_PART_SIZE);// = char[MAX_PARTS][MAX_PART_SIZE];
-				
-				int left_to_copy = b2->size;
-				int position = 0;
-				for (position; position<b2->size; position += MAX_PART_SIZE)
-				{
-					int left_to_copy = b2->size - position;
-					memset(arr, '\0', MAX_PART_SIZE);
-					memcpy(arr , b2->d + position, left_to_copy > MAX_PART_SIZE ? MAX_PART_SIZE : left_to_copy);
-					//position += MAX_PART_SIZE;
-
-					debug3("arr[%d]: %s", position, arr);
-					if ((r = sshpkt_start(ssh, SSH2_MSG_USERAUTH_UPDATED_PUBLIC)) != 0 ||
-					// if ((r = sshpkt_start(ssh, SSH2_MSG_DEBUG)) != 0 ||
-						(r = sshpkt_put_u8(ssh, 0)) != 0 || /* always display */
-						(r = sshpkt_put_u32(ssh, b2->size)) != 0 ||
-						(r = sshpkt_put_cstring(ssh, arr)) != 0 ||
-						(r = sshpkt_put_cstring(ssh, "")) != 0 || 
-						(r = sshpkt_send(ssh)) != 0 ||
-						(r = ssh_packet_write_wait(ssh)) != 0)
-						fatal("%s: %s", __func__, ssh_err(r));
-				}
-				free(arr);
-			}
-
+			if ((r = sshpkt_start(ssh, SSH2_MSG_USERAUTH_UPDATED_PUBLIC)) != 0 ||
+				(r = sshpkt_put_u8(ssh, 0)) != 0 || /* always display */
+				(r = sshpkt_put_u32(ssh, sshbuf_len(b))) != 0 ||
+				(r = sshpkt_put_cstring(ssh, b->cd)) != 0 ||
+				(r = sshpkt_put_cstring(ssh, "")) != 0 || 
+				(r = sshpkt_send(ssh)) != 0 ||
+				(r = ssh_packet_write_wait(ssh)) != 0)
+				fatal("%s: %s", __func__, ssh_err(r));
 		}
 
 		if (ssh_packet_is_rekeying(ssh)) {
