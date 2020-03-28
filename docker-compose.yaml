@@ -1,0 +1,30 @@
+version: '3.0'
+
+services:
+    web:
+        build: frontend/
+        image: flask_frontend
+        ports: 
+            - "5000:5000"
+        volumes: 
+            - ./frontend:/home
+        networks:
+            - internal
+        depends_on: 
+            - db
+    
+    db:
+        image: mariadb
+        ports: 
+            - "3306:3306"
+        networks:
+            - internal
+        volumes:
+            - ./database:/home
+        environment: 
+            - MYSQL_ROOT_PASSWORD=pass
+
+    
+
+networks:
+    internal:

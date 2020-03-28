@@ -1,0 +1,17 @@
+.keys_row
+{
+    cursor: pointer;
+}
+
+#keys_action_buttons
+{
+    padding-top:20px;
+    padding-bottom:20px;
+}
+
+#new_public_key
+{
+    width: 100%;
+    height:240px;
+    resize:none;
+}

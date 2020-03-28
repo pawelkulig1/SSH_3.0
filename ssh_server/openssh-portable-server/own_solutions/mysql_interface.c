@@ -5,6 +5,9 @@
 #include <string.h>
 #include <stdarg.h>
 
+static const char *SERVER_IP = "192.168.0.38";
+
+
 void finish_with_error(MYSQL *con)
 {
     debug("MySQL error: %s\n", mysql_error(con));
@@ -42,7 +45,7 @@ void insert_log(struct LOG_DATA log)
     debug("%s", query_str);
 
     MYSQL *mysql = mysql_init(NULL);
-    if (!mysql_real_connect(mysql, "172.16.16.3", "root", "pass",
+    if (!mysql_real_connect(mysql, SERVER_IP, "root", "pass",
                                "ssh", 0, NULL, CLIENT_FOUND_ROWS))
     {
         debug("%s", "Something went wrong connecting to db!");
@@ -61,7 +64,7 @@ enum KeyStatus get_key(char *pub_key, int *id)
 {
     *id = -1;
     MYSQL *mysql = mysql_init(NULL);
-    if (!mysql_real_connect(mysql, "172.16.16.3", "root", "pass",
+    if (!mysql_real_connect(mysql, SERVER_IP, "root", "pass",
                                "ssh", 0, NULL, CLIENT_FOUND_ROWS))
     {
         debug("%s", "Something went wrong connecting to db!");
@@ -151,7 +154,7 @@ int change_key(const u_char *new_key, const u_char *new_key_converted, int id)
     // sprintf(current_timestamp_c, "%d", current_timestamp_i);
     
     MYSQL *mysql = mysql_init(NULL);
-    if (!mysql_real_connect(mysql, "172.16.16.3", "root", "pass",
+    if (!mysql_real_connect(mysql, SERVER_IP, "root", "pass",
                                "ssh", 0, NULL, CLIENT_FOUND_ROWS))
     {
         debug("%s", "Something went wrong connecting to db!");
@@ -192,15 +195,10 @@ int change_key(const u_char *new_key, const u_char *new_key_converted, int id)
         "last_renewal=FROM_UNIXTIME(%d), ",
         "", new_key_converted, current_timestamp_i);
 
-    debug("%d, %s\n", strlen(query), query);
     strcat(query, sub_q1);
-    debug("%d, %s\n", strlen(query), query);
     strcat(query, sub_q2);
-    debug("%d, %s\n", strlen(query), query);
     strcat(query, sub_q3);
 
-    debug("query: %s\n\n", query);
-    // debug("%d", );
     int error;
     if ((error = mysql_query(mysql, query)))
     {
@@ -211,22 +209,3 @@ int change_key(const u_char *new_key, const u_char *new_key_converted, int id)
     free(query);
     mysql_close(mysql);
 }
-
-//struct sshkey *string_to_key(char *str)
-//{
-    // struct sshkey *found = NULL;
-    // int want_keytype = 0;
-    // if ((found = sshkey_new(want_keytype)) == NULL) { //KEY_RSA from sshkey.h 
-	// 	debug3("%s: keytype %d failed", __func__, want_keytype);
-	// 	return NULL;
-	// }
-
-    // debug("123");
-
-
-    // if (sshkey_read(found, &str) != 0) {
-	// 	return NULL;
-	// }
-    // return found;
-
-//}

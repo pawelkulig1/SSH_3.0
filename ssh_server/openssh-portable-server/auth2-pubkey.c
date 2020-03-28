@@ -719,8 +719,9 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	//insert_log(log);
 
 	//mysql here!
-	char *cp, loc[256];
-	char line[ROW_MAX_LEN];
+	//char *cp, loc[256];
+	char loc[256];
+	//char line[ROW_MAX_LEN];
 	int found_key = 1;
 	long unsigned int linenum = 0;
 	ssh->session_id = -1;
@@ -732,8 +733,8 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	free(c);
 
 	//STUB
-	found_key = NEEDS_RENEWAL;
-	ssh->session_id = 6;
+	//found_key = NEEDS_RENEWAL;
+	//ssh->session_id = 6;
 
 
 	if (found_key == NEEDS_RENEWAL) 
