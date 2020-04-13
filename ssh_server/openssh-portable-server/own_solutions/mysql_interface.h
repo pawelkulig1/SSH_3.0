@@ -2,7 +2,7 @@
 #define MYSQL_INTERFACE_H
 #include <mysql/mysql.h>
 
-
+#define ROW_MAX_LEN 4096
 
 enum KeyStatus 
 {
@@ -32,7 +32,7 @@ void get_config(MYSQL *mysql, int *validity_period, int *renewability_period, in
 //update key in database if recalculation happened
 int change_key(const u_char *new_key, const u_char *new_key_converted, int id);
 
-int get_empty_key()
+int get_empty_key();
 
 //struct sshkey *string_to_key(char *str);
 

@@ -1,5 +1,6 @@
 import mysql.connector
 import time
+from convert_key import convert_key_to_hex
 
 class DBConnector:
     validity_period = None
@@ -62,7 +63,41 @@ class DBConnector:
         return self.cursor.execute(query)
 
     def add_key(self, key):
-        user = key.rsplit("= ")[1] #possible == also
-        query = "INSERT INTO ssh_keys (host_name, pub_key, renewable_by, valid_through) VALUES('{}', '{}', FROM_UNIXTIME({}), FROM_UNIXTIME({}));" \
-                .format(user, key, int(time.time()) + DBConnector.renewability_period, int(time.time()) + DBConnector.validity_period)
+
+        padding_size = 0
+        if key.find("==") != -1:
+            padding_size = 2
+        elif key.find("=") != -1:
+            padding_size = 1
+        else:
+            padding_size = 0
+
+        user = "user"
+        beg = key.find(" ") + 1
+        end = 0
+        if padding_size == 1:
+            end = key.rfind("=") + 1
+        elif padding_size == 2:
+            end = key.rfind("==") + 2
+        else:
+            return
+        
+        ssh_key = key[beg:end]
+        if key[end+1] == "=":
+            user = key[end+2:]
+        else:
+            user = key[end+1:]
+        
+        
+        # print(key, user)
+        ssh_key = ssh_key.replace(" ", "+")
+        key_converted = convert_key_to_hex(ssh_key)[:-6]
+        with open("log.out", "a+") as f:
+            f.write(key + "\n" + ssh_key + "\n" + user + "\n" + key_converted.decode() + "\n")
+        # print("key converted:", key_converted)
+        query = "INSERT INTO ssh_keys (host_name, pub_key, pub_key_converted, renewable_by, valid_through) VALUES('{}', '{}', '{}', FROM_UNIXTIME({}), FROM_UNIXTIME({}));" \
+                .format(user, key, key_converted.decode(), int(time.time()) + DBConnector.renewability_period, int(time.time()) + DBConnector.validity_period)
         return self.cursor.execute(query)
+
+
+

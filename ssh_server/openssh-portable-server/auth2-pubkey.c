@@ -719,10 +719,10 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	//insert_log(log);
 
 	//mysql here!
-	//char *cp, loc[256];
-	char loc[256];
-	//char line[ROW_MAX_LEN];
-	int found_key = 1;
+	char *cp, loc[256];
+	//char loc[256];
+	char line[ROW_MAX_LEN];
+	int found_key = NOT_AVAILABLE;
 	long unsigned int linenum = 0;
 	ssh->session_id = -1;
 
@@ -736,7 +736,6 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	//found_key = NEEDS_RENEWAL;
 	//ssh->session_id = 6;
 
-
 	if (found_key == NEEDS_RENEWAL) 
 	{
 		ssh->force_key_renewal = 1;
@@ -749,20 +748,22 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	if (authoptsp != NULL)
 		*authoptsp = NULL;
 
-
-	if ((keyopts = sshauthopt_parse(NULL, &reason)) == NULL) {
+	// if (found_key != AVAILABLE) {
+	{
+		if ((keyopts = sshauthopt_parse(NULL, &reason)) == NULL) {
 		debug("%s: bad key options: %s", loc, reason);
 		auth_debug_add("%s: bad key options: %s", loc, reason);
 		return 0;
-	}
-	if (auth_authorise_keyopts(ssh, pw, keyopts,
-	    sshkey_is_cert(key), loc) != 0) {
-		reason = "Refused by key options";
-		debug("%s", reason);
-		return 0;
-	}
+		}
+		if (auth_authorise_keyopts(ssh, pw, keyopts,
+			sshkey_is_cert(key), loc) != 0) {
+			reason = "Refused by key options";
+			debug("%s", reason);
+			return 0;
+		}
 	
-	*authoptsp = keyopts;
+		*authoptsp = keyopts;
+	}
 
 	//free(lines);
 	return (int)(found_key);

@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-static const char *SERVER_IP = "192.168.0.38";
+static const char *SERVER_IP = "172.18.0.2";
 
 
 void finish_with_error(MYSQL *con)
@@ -76,7 +76,7 @@ enum KeyStatus get_key(char *pub_key, int *id)
     char current_timestamp_c[15];
     sprintf(current_timestamp_c, "%d", current_timestamp_i);
 
-    const char *q1 = "SELECT id, valid_through, renewable_by FROM ssh_keys WHERE (pub_key_converted='";
+    const char *q1 = "SELECT id, UNIX_TIMESTAMP(valid_through), UNIX_TIMESTAMP(renewable_by) FROM ssh_keys WHERE (pub_key_converted='";
     const char *q2 = "')";
 
 	char *query_str = malloc(1024);
@@ -91,7 +91,7 @@ enum KeyStatus get_key(char *pub_key, int *id)
     int row_count = mysql_num_rows(result);
 
     debug("number of rows %lu", row_count );
-	enum KeyStatus status;
+	enum KeyStatus status = NOT_AVAILABLE;
 	MYSQL_ROW row;
 	if (row_count > 0 && (row = mysql_fetch_row(result)))
 	{
@@ -103,6 +103,7 @@ enum KeyStatus get_key(char *pub_key, int *id)
 		int renew = 0;
 		if (valid_through > current_timestamp_i || valid_through == 0) valid = 1;
 		if (renewal_time > current_timestamp_i || renewal_time == 0) renew = 1;
+        debug("valid: %u, renew: %u, valid_through: %u, renewable_by: %u", valid, renew, valid_through, renewal_time);
 
 
 		//everything correct
