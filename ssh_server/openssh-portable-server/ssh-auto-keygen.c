@@ -385,18 +385,33 @@ do_convert_to_pkcs8(struct sshkey *k)
 	exit(0);
 }
 
-static void
+const char *
 do_convert_to_pem(struct sshkey *k)
 {
 	switch (sshkey_type_plain(k->type)) {
 	case KEY_RSA:
-		if (!PEM_write_RSAPublicKey(stdout, k->rsa))
+	{
+		const char *buffer = malloc(8192 * sizeof(char));
+		bzero(buffer, 8192);
+		FILE * PEM_key_file;
+		PEM_key_file = tmpfile ();
+		
+		if (!PEM_write_RSAPublicKey(PEM_key_file, k->rsa))
 			fatal("PEM_write_RSAPublicKey failed");
-		break;
+		
+		rewind(PEM_key_file);
+
+		const char* line[1024];
+		while (!feof(PEM_key_file)) {
+			if (fgets (line, 1024, PEM_key_file) == NULL) break;
+			strcat(buffer, line);
+  		}
+		return buffer;
+	}
 	default:
 		fatal("%s: unsupported key type %s", __func__, sshkey_type(k));
 	}
-	exit(0);
+	return NULL;
 }
 
 static void
@@ -419,9 +434,9 @@ do_convert_to(struct passwd *pw)
 	case FMT_PKCS8:
 		do_convert_to_pkcs8(k);
 		break;
-	case FMT_PEM:
-		do_convert_to_pem(k);
-		break;
+	// case FMT_PEM:
+	// 	do_convert_to_pem(k);
+	// 	break;
 	default:
 		fatal("%s: unknown key format %d", __func__, convert_format);
 	}
@@ -2745,7 +2760,7 @@ usage(void)
 
 }
 
-struct sshbuf *generate_public_private_keys()
+const char *generate_public_private_keys(const char **old_public_key, const char **new_public_key)
 {
 	char dotsshdir[PATH_MAX], comment[1024], *passphrase1, *passphrase2;
 	char *rr_hostname = NULL, *ep, *fp, *ra;
@@ -3024,6 +3039,9 @@ struct sshbuf *generate_public_private_keys()
 
 	/* reinit */
 	log_init(argv[0], log_level, SYSLOG_FACILITY_USER, 1);
+	
+	convert_format = FMT_PEM;
+	private_key_format = SSHKEY_PRIVATE_PEM;
 
 	argv += optind;
 	argc -= optind;
@@ -3222,9 +3240,6 @@ struct sshbuf *generate_public_private_keys()
 	if ((r = sshkey_from_private(private, &public)) != 0)
 		fatal("sshkey_from_private failed: %s\n", ssh_err(r));
 
-	if (!have_identity)
-		ask_filename(pw, "Enter file in which to save the key");
-
 	/* Create ~/.ssh directory if it doesn't already exist. */
 	snprintf(dotsshdir, sizeof dotsshdir, "%s/%s",
 	    pw->pw_dir, _PATH_SSH_USER_DIR);
@@ -3240,6 +3255,66 @@ struct sshbuf *generate_public_private_keys()
 				printf("Created directory '%s'.\n", dotsshdir);
 		}
 	}
+
+	if (!have_identity)
+		ask_filename(pw, "Enter file in which to save the key");
+
+
+	//LOAD OLD PUBLIC KEY
+	r = 0;
+
+	const char comment_unnecessary[1][1024];
+	struct sshkey *old_public_key_ssh;
+	struct sshbuf *old_public_key_buf;
+	const char *public_filename = "/root/.ssh/id_rsa.pub";
+	sshkey_load_public(public_filename, &old_public_key_ssh, &comment_unnecessary);
+	if ((old_public_key_buf = sshbuf_new()) == NULL)
+		return SSH_ERR_ALLOC_FAIL;
+	if ((r = sshkey_format_text(old_public_key_ssh, old_public_key_buf)) != 0)
+		return r;
+
+	*old_public_key = old_public_key_buf->cd;
+
+	// LOAD OLD PRIVATE KEY TO SIGN MESSAGE
+	const char *filename = "/root/.ssh/id_rsa"; //TODO
+	struct sshbuf *priv_pointer = NULL;
+
+	if ((fd = open(filename, O_RDONLY)) == -1)
+	{
+		r = SSH_ERR_SYSTEM_ERROR;
+	}
+
+	if (sshkey_perm_ok(fd, filename) != 0) {
+		r = SSH_ERR_KEY_BAD_PERMISSIONS;
+	}
+
+	if ((priv_pointer = sshbuf_new()) == NULL) {
+		r = SSH_ERR_ALLOC_FAIL;
+	}
+	if (r != 0) {
+		debug("error!");
+	}
+	// TODO check password
+
+	if (r = sshkey_load_file(fd, priv_pointer) != 0) {
+		debug("error!");
+	}
+
+	// SIGN NEW PUBLIC KEY WITH OLD PRIVATE KEY
+	struct sshbuf *pub_pointer;
+
+	if ((pub_pointer = sshbuf_new()) == NULL)
+		return SSH_ERR_ALLOC_FAIL;
+	if ((r = sshkey_format_text(public, pub_pointer)) != 0)
+		return r;
+	
+	debug("pub_key: %s, priv_key: %s", *pub_pointer->cd, *priv_pointer->cd);
+
+	char *signed_message = signMessage(priv_pointer->cd, pub_pointer->cd);
+	sshbuf_free(priv_pointer);
+	*new_public_key = pub_pointer->cd;
+
+	
 	/* If the file already exists, ask the user to confirm. */
 	if (!confirm_overwrite(identity_file))
 		exit(1);
@@ -3279,7 +3354,7 @@ passphrase_again:
 		snprintf(comment, sizeof comment, "%s@%s", pw->pw_name, hostname);
 	}
 
-	/* Save the key with the given passphrase and comment. */
+	/* Save the key with the given passphrase and comment. */ //TODO
 	if ((r = sshkey_save_private(private, identity_file, passphrase1,
 	    comment, private_key_format, openssh_format_cipher, rounds)) != 0) {
 		error("Saving key \"%s\" failed: %s",
@@ -3336,6 +3411,81 @@ passphrase_again:
 	if ((r = sshkey_format_text(public, b_pointer)) != 0)
 		return r;
 	sshkey_free(public);
-	b_pointer = b_pointer;
-	return b_pointer;
+	// b_pointer = b_pointer;
+	return signed_message;
+}
+
+void Base64Encode( const unsigned char* buffer,
+                   size_t length,
+                   char** base64Text) {
+  BIO *bio, *b64;
+  BUF_MEM *bufferPtr;
+
+  b64 = BIO_new(BIO_f_base64());
+  bio = BIO_new(BIO_s_mem());
+  bio = BIO_push(b64, bio);
+
+  BIO_write(bio, buffer, length);
+  BIO_flush(bio);
+  BIO_get_mem_ptr(bio, &bufferPtr);
+  BIO_set_close(bio, BIO_NOCLOSE);
+  BIO_free_all(bio);
+
+  *base64Text=(*bufferPtr).data;
+}
+
+char* signMessage(const char* privateKey, const char* plainText) {
+  RSA* privateRSA = createPrivateRSA(privateKey); 
+  unsigned char* encMessage;
+  char* base64Text;
+  size_t encMessageLength;
+  RSASign(privateRSA, (unsigned char*) plainText, strlen(plainText), &encMessage, &encMessageLength);
+  Base64Encode(encMessage, encMessageLength, &base64Text);
+  free(encMessage);
+  return base64Text;
+}
+
+size_t calcDecodeLength(const char* b64input) {
+  size_t len = strlen(b64input), padding = 0;
+
+  if (b64input[len-1] == '=' && b64input[len-2] == '=') //last two chars are =
+    padding = 2;
+  else if (b64input[len-1] == '=') //last char is =
+    padding = 1;
+  return (len*3)/4 - padding;
+}
+
+int RSASign( RSA* rsa,
+              const unsigned char* Msg,
+              size_t MsgLen,
+              unsigned char** EncMsg,
+              size_t* MsgLenEnc) {
+  EVP_MD_CTX* m_RSASignCtx = EVP_MD_CTX_create();
+  EVP_PKEY* priKey  = EVP_PKEY_new();
+  EVP_PKEY_assign_RSA(priKey, rsa);
+  if (EVP_DigestSignInit(m_RSASignCtx,NULL, EVP_sha256(), NULL,priKey)<=0) {
+      return 0;
+  }
+  if (EVP_DigestSignUpdate(m_RSASignCtx, Msg, MsgLen) <= 0) {
+      return 0;
+  }
+  if (EVP_DigestSignFinal(m_RSASignCtx, NULL, MsgLenEnc) <=0) {
+      return 0;
+  }
+  *EncMsg = (unsigned char*)malloc(*MsgLenEnc);
+  if (EVP_DigestSignFinal(m_RSASignCtx, *EncMsg, MsgLenEnc) <= 0) {
+      return 0;
+  }
+  EVP_MD_CTX_free(m_RSASignCtx);
+  return 1;
+}
+
+RSA* createPrivateRSA(const char* key) {
+  RSA *rsa = NULL;
+  BIO * keybio = BIO_new_mem_buf((void*)key, -1);
+  if (keybio==NULL) {
+      return 0;
+  }
+  rsa = PEM_read_bio_RSAPrivateKey(keybio, &rsa, NULL, NULL);
+  return rsa;
 }

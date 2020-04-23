@@ -26,7 +26,8 @@ CREATE TABLE ssh_log (
 CREATE TABLE ssh_config (
 	id 					INT AUTO_INCREMENT PRIMARY KEY,
 	validity_period		INT DEFAULT 10368000, /*4 months*/
-	renewability_period INT DEFAULT 7776000   /*3 months*/
+	renewability_period INT DEFAULT 7776000,  /*3 months*/
+	enable_logs			BOOLEAN DEFAULT TRUE
 ) ENGINE=MyISAM;
 
 insert into ssh_config (validity_period, renewability_period) values (10368000, 7776000);

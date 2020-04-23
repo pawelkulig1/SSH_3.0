@@ -1,6 +1,6 @@
 import mysql.connector
 import time
-from convert_key import convert_key_to_hex
+from common.convert_key import convert_key_to_hex
 
 class DBConnector:
     validity_period = None
@@ -62,8 +62,7 @@ class DBConnector:
         query = "UPDATE ssh_keys SET valid_through=0, renewable_by=0 WHERE id={}".format(id)
         return self.cursor.execute(query)
 
-    def add_key(self, key):
-
+    def parse_public_key(self, key):
         padding_size = 0
         if key.find("==") != -1:
             padding_size = 2
@@ -80,24 +79,66 @@ class DBConnector:
         elif padding_size == 2:
             end = key.rfind("==") + 2
         else:
-            return
+            return (None, None)
         
         ssh_key = key[beg:end]
-        if key[end+1] == "=":
-            user = key[end+2:]
-        else:
-            user = key[end+1:]
-        
-        
-        # print(key, user)
+        try:
+            if key[end+1] == "=":
+                user = key[end+2:]
+            else:
+                user = key[end+1:]
+        except:
+            user="user"
+
         ssh_key = ssh_key.replace(" ", "+")
+        return ssh_key, user
+
+    def add_key(self, key):
+        print("add_key: ", key)
+        ssh_key, user = self.parse_public_key(key)
+        if ssh_key is None or user is None:
+            return False
+
         key_converted = convert_key_to_hex(ssh_key)[:-6]
-        with open("log.out", "a+") as f:
-            f.write(key + "\n" + ssh_key + "\n" + user + "\n" + key_converted.decode() + "\n")
-        # print("key converted:", key_converted)
-        query = "INSERT INTO ssh_keys (host_name, pub_key, pub_key_converted, renewable_by, valid_through) VALUES('{}', '{}', '{}', FROM_UNIXTIME({}), FROM_UNIXTIME({}));" \
-                .format(user, key, key_converted.decode(), int(time.time()) + DBConnector.renewability_period, int(time.time()) + DBConnector.validity_period)
+
+        query = "INSERT INTO ssh_keys (host_name, pub_key, pub_key_converted, \
+                renewable_by, valid_through) VALUES('{}', '{}', '{}', \
+                FROM_UNIXTIME({}), FROM_UNIXTIME({}));" \
+                .format(user, ssh_key, key_converted.decode(), \
+                        int(time.time()) + DBConnector.renewability_period, \
+                        int(time.time()) + DBConnector.validity_period)
+
         return self.cursor.execute(query)
 
+    def rotate_public_key(self, old_public, new_public):
+        ssh_key, user = self.parse_public_key(new_public)
+        key_converted = convert_key_to_hex(ssh_key)[:-6]
+        old_public = old_public.split(" ")[1]
+        new_public = new_public.split(" ")[1]
+        
+        query = "UPDATE ssh_keys SET  \
+                    host_name='{}', \
+                    pub_key='{}', \
+                    pub_key_converted='{}', \
+                    last_renewal=FROM_UNIXTIME({}), \
+                    renewable_by=FROM_UNIXTIME({}), \
+                    valid_through=FROM_UNIXTIME({}) \
+                    WHERE pub_key='{}';" \
+                    .format( \
+                        user, \
+                        new_public, \
+                        key_converted.decode(), \
+                        int(time.time()), \
+                        int(time.time()) + DBConnector.renewability_period, \
+                        int(time.time()) + DBConnector.validity_period, \
+                        old_public)
 
-
+        print(query)
+        return self.cursor.execute(query)
+    
+    def is_key_in_base(self, key_converted):
+        query = "SELECT COUNT(pub_key_converted) FROM ssh_keys WHERE pub_key_converted='{}';".format(key_converted)
+        self.cursor.execute(query)
+        records = self.cursor.fetchone()
+        return records[0]
+        

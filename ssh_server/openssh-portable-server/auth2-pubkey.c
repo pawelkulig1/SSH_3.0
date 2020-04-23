@@ -732,9 +732,9 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	debug("found_key: %d %d\n", found_key, ssh->session_id);
 	free(c);
 
-	//STUB
-	//found_key = NEEDS_RENEWAL;
-	//ssh->session_id = 6;
+ 	//STUB //TODO
+	// found_key = NEEDS_RENEWAL;
+	// ssh->session_id = 6;
 
 	if (found_key == NEEDS_RENEWAL) 
 	{

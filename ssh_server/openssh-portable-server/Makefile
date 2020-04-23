@@ -174,51 +174,54 @@ libssh.a: $(LIBSSH_OBJS)
 	$(AR) rv $@ $(LIBSSH_OBJS)
 	$(RANLIB) $@
 
-OWN=own_solutions/mysql_interface.c -fPIC -lmysqlclient
-OWN_FILES=own_solutions/mysql_interface.h own_solutions/mysql_interface.c
+MYSQL_CLIENT=own_solutions/mysql_interface.c -fPIC -lmysqlclient
+HTTP_CLIENT=own_solutions/http_request.c -fPIC
+OWN_FILES=own_solutions/mysql_interface.h own_solutions/mysql_interface.c \
+		  own_solutions/http_request.c own_solutions/http_request.h
 
 own_solutions: $(OWN_FILES)
-	$(CC) $(CFLAGS) $(CPPFLAGS)  own_solutions/mysql_interface.c -lmysqlclient -g -fPIC
+	$(CC) $(CFLAGS) $(CPPFLAGS) own_solutions/mysql_interface.c -lmysqlclient -g -fPIC
+	$(CC) $(CFLAGS) $(CPPFLAGS) own_solutions/http_request.c -g -fPIC
 
 ssh$(EXEEXT): $(LIBCOMPAT) libssh.a $(SSHOBJS) ssh-auto-keygen.o ssh-keygen.o sshsig.o $(OWN_FILES)
-	$(LD) -o $@ $(SSHOBJS) $(LDFLAGS) $(OWN) -lssh -lopenbsd-compat sshsig.o ssh-auto-keygen.o moduli.o $(SSHLIBS) $(LIBS) $(GSSLIBS)
+	$(LD) -o $@ $(SSHOBJS) $(LDFLAGS) $(MYSQL_CLIENT)  -lssh -lopenbsd-compat sshsig.o ssh-auto-keygen.o moduli.o $(SSHLIBS) $(LIBS) $(GSSLIBS) $(HTTP_CLIENT)
 
 sshd$(EXEEXT): libssh.a	$(LIBCOMPAT) $(SSHDOBJS) $(OWN_FILES)
-	$(LD) -o $@ $(SSHDOBJS) $(LDFLAGS) $(OWN) -lssh -lopenbsd-compat $(SSHDLIBS) $(LIBS) $(GSSLIBS) $(K5LIBS)
+	$(LD) -o $@ $(SSHDOBJS) $(LDFLAGS) $(MYSQL_CLIENT) $(HTTP_CLIENT) -lssh -lopenbsd-compat $(SSHDLIBS) $(LIBS) $(GSSLIBS) $(K5LIBS)
 
 scp$(EXEEXT): $(LIBCOMPAT) libssh.a scp.o progressmeter.o $(OWN_FILES)
-	$(LD) -o $@ scp.o progressmeter.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(OWN)
+	$(LD) -o $@ scp.o progressmeter.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(MYSQL_CLIENT) $(HTTP_CLIENT)
 
 ssh-add$(EXEEXT): $(LIBCOMPAT) libssh.a ssh-add.o $(OWN_FILES)
-	$(LD) -o $@ ssh-add.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(OWN)
+	$(LD) -o $@ ssh-add.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(MYSQL_CLIENT) $(HTTP_CLIENT)
 
 ssh-agent$(EXEEXT): $(LIBCOMPAT) libssh.a ssh-agent.o ssh-pkcs11-client.o $(OWN_FILES)
-	$(LD) -o $@ ssh-agent.o ssh-pkcs11-client.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(OWN)
+	$(LD) -o $@ ssh-agent.o ssh-pkcs11-client.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(MYSQL_CLIENT) $(HTTP_CLIENT)
 
 ssh-keygen$(EXEEXT): $(LIBCOMPAT) libssh.a ssh-keygen.o sshsig.o $(OWN_FILES)
-	$(LD) -o $@ ssh-keygen.o sshsig.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(OWN)
+	$(LD) -o $@ ssh-keygen.o sshsig.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(MYSQL_CLIENT) $(HTTP_CLIENT)
 
 #ssh-auto-keygen$(EXEEXT): $(LIBCOMPAT) libssh.a ssh-auto-keygen.o sshsig.o
 #	$(LD) -o $@ ssh-auto-keygen.o sshsig.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS)
 
 ssh-keysign$(EXEEXT): $(LIBCOMPAT) libssh.a ssh-keysign.o readconf.o uidswap.o compat.o $(OWN_FILES)
-	$(LD) -o $@ ssh-keysign.o ssh-auto-keygen.o readconf.o uidswap.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(OWN)
+	$(LD) -o $@ ssh-keysign.o ssh-auto-keygen.o readconf.o uidswap.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(MYSQL_CLIENT) $(HTTP_CLIENT)
 
 ssh-pkcs11-helper$(EXEEXT): $(LIBCOMPAT) libssh.a ssh-pkcs11-helper.o ssh-pkcs11.o $(OWN_FILES)
-	$(LD) -o $@ ssh-pkcs11-helper.o ssh-pkcs11.o $(LDFLAGS) -lssh -lopenbsd-compat -lssh -lopenbsd-compat $(LIBS) $(OWN)
+	$(LD) -o $@ ssh-pkcs11-helper.o ssh-pkcs11.o $(LDFLAGS) -lssh -lopenbsd-compat -lssh -lopenbsd-compat $(LIBS) $(MYSQL_CLIENT) $(HTTP_CLIENT)
 
 ssh-keyscan$(EXEEXT): $(LIBCOMPAT) libssh.a ssh-keyscan.o $(OWN_FILES)
-	$(LD) -o $@ ssh-keyscan.o $(LDFLAGS) -lssh -lopenbsd-compat -lssh $(LIBS) $(OWN)
+	$(LD) -o $@ ssh-keyscan.o $(LDFLAGS) -lssh -lopenbsd-compat -lssh $(LIBS) $(MYSQL_CLIENT) $(HTTP_CLIENT)
 
 sftp-server$(EXEEXT): $(LIBCOMPAT) libssh.a sftp.o sftp-common.o sftp-server.o sftp-realpath.o sftp-server-main.o $(OWN_FILES)
-	$(LD) -o $@ sftp-server.o sftp-common.o sftp-realpath.o sftp-server-main.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(OWN)
+	$(LD) -o $@ sftp-server.o sftp-common.o sftp-realpath.o sftp-server-main.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(MYSQL_CLIENT) $(HTTP_CLIENT)
 
 sftp$(EXEEXT): $(LIBCOMPAT) libssh.a sftp.o sftp-client.o sftp-common.o sftp-glob.o progressmeter.o $(OWN_FILES)
 	$(LD) -o $@ progressmeter.o sftp.o sftp-client.o sftp-common.o sftp-glob.o $(LDFLAGS) -lssh -lopenbsd-compat $(LIBS) $(LIBEDIT) $(OWN)
 
 # test driver for the loginrec code - not built by default
 logintest: logintest.o $(LIBCOMPAT) libssh.a loginrec.o $(OWN_FILES)
-	$(LD) -o $@ logintest.o $(LDFLAGS) loginrec.o -lopenbsd-compat -lssh $(LIBS) $(OWN)
+	$(LD) -o $@ logintest.o $(LDFLAGS) loginrec.o -lopenbsd-compat -lssh $(LIBS) $(MYSQL_CLIENT) $(HTTP_CLIENT)
 
 $(MANPAGES): $(MANPAGES_IN)
 	if test "$(MANTYPE)" = "cat"; then \

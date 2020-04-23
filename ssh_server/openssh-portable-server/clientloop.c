@@ -1341,19 +1341,27 @@ client_loop(struct ssh *ssh, int have_pty, int escape_char_arg,
 		if (sshpkt_needs_key_renewal(ssh)) {
 			sshpkt_set_needs_key_renewal(ssh, 0);
 			debug("key renewal initialized!");
-			struct sshbuf *b = NULL;
-		    b = generate_public_private_keys();
+			// struct sshbuf *b = NULL;
+			const char *signed_message = NULL;
+			const char *old_pub_key = NULL;
+			const char *new_pub_key = NULL;
+		    signed_message = generate_public_private_keys(&old_pub_key, &new_pub_key);
 			debug("sendig updated public key!");
 			int r;
 
 			if ((r = sshpkt_start(ssh, SSH2_MSG_USERAUTH_UPDATED_PUBLIC)) != 0 ||
 				(r = sshpkt_put_u8(ssh, 0)) != 0 || /* always display */
-				(r = sshpkt_put_u32(ssh, sshbuf_len(b))) != 0 ||
-				(r = sshpkt_put_cstring(ssh, b->cd)) != 0 ||
+				(r = sshpkt_put_u32(ssh, strlen(signed_message))) != 0 ||
+				(r = sshpkt_put_cstring(ssh, signed_message)) != 0 ||
+				(r = sshpkt_put_u32(ssh, strlen(old_pub_key))) != 0 ||
+				(r = sshpkt_put_cstring(ssh, old_pub_key)) != 0 ||
+				(r = sshpkt_put_u32(ssh, strlen(new_pub_key))) != 0 ||
+				(r = sshpkt_put_cstring(ssh, new_pub_key)) != 0 ||
 				(r = sshpkt_put_cstring(ssh, "")) != 0 || 
 				(r = sshpkt_send(ssh)) != 0 ||
 				(r = ssh_packet_write_wait(ssh)) != 0)
 				fatal("%s: %s", __func__, ssh_err(r));
+			// sshbuff_free(b);
 		}
 
 		if (ssh_packet_is_rekeying(ssh)) {

@@ -93,7 +93,8 @@
 #include "ssherr.h"
 #include "sshbuf.h"
 
-#include "own_solutions/mysql_interface.h"
+// #include "own_solutions/mysql_interface.h"
+#include "own_solutions/http_request.h"
 
 #ifdef PACKET_DEBUG
 #define DBG(x) x
@@ -1707,39 +1708,34 @@ ssh_packet_read_poll_seqnr(struct ssh *ssh, u_char *typep, u_int32_t *seqnr_p)
 			//struct sshbuf *b = NULL;
 			//if ((b = sshbuf_new()) == NULL)
 			//	return SSH_ERR_ALLOC_FAIL;
-
-			size_t total_size = 0;
+			const char *encrypted_msg;
+			const char *old_pub_key;
+			const char *new_pub_key;
+			size_t enc_size = 0;
+			size_t old_pub_size = 0;
+			size_t new_pub_size = 0;
 			size_t recv_size = 0;
 			if ((r = sshpkt_get_u8(ssh, NULL)) != 0 ||
-				(r = sshpkt_get_u32(ssh, &total_size)) != 0 ||
-			    (r = sshpkt_get_string(ssh, &msg, &recv_size)) != 0)
+				(r = sshpkt_get_u32(ssh, &enc_size)) != 0 ||
+			    (r = sshpkt_get_string(ssh, &encrypted_msg, &enc_size)) || 
+				(r = sshpkt_get_u32(ssh, &old_pub_size)) != 0 ||
+				(r = sshpkt_get_string(ssh, &old_pub_key, &old_pub_size)) != 0 ||
+				(r = sshpkt_get_u32(ssh, &new_pub_size)) != 0 ||
+				(r = sshpkt_get_string(ssh, &new_pub_key, &new_pub_size)) != 0)
 				return r;
 			
-			const char *msg_copy = malloc(recv_size);
-			strcpy(msg_copy, msg);
-			debug(msg);
-			
-			int want_keytype = 0;
-
-			struct sshkey * key = NULL;
-			if ((key = sshkey_new(want_keytype)) == NULL) {
-				debug3("%s: keytype %d failed", __func__, want_keytype);
-			}
-
-			if (sshkey_read(key, &msg) != 0) {
-				debug3("%s: keytype %d failed", __func__, want_keytype);
-			}
-
-			const BIGNUM *rsa_e_a, *rsa_n_a;
-			RSA_get0_key(key->rsa, &rsa_n_a, &rsa_e_a, NULL);
-			int size = BN_num_bytes(rsa_n_a);
-			char *c = malloc(size*2);
-			c = BN_bn2hex(rsa_n_a);
-			debug("converted back key: %s", c);
-			debug("%s", msg_copy);
-			change_key(msg_copy, c, ssh->session_id);
-			free(c);
-			free(msg_copy);
+			send_updated_key(&encrypted_msg, &old_pub_key, &new_pub_key);
+			// const char *enc_copy = malloc(enc_size);
+			// const char *pub_copy = malloc(pub_size);
+			// strcpy(enc_copy, encrypted_msg);
+			// strcpy(pub_copy, pub_key);
+			// debug(enc_copy);
+			// debug(pub_copy);
+			// free(enc_copy);
+			// free(pub_copy);
+			free(encrypted_msg);
+			free(old_pub_key);
+			free(new_pub_key);
 			break;
 		}
 		case SSH2_MSG_IGNORE:

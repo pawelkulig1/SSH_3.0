@@ -1,0 +1,27 @@
+<html>
+
+<head>
+    {% block head %}
+    <title>SSH Admin</title>
+
+    {% endblock %}
+</head>
+
+<body>
+    <ul class="nav">
+        <li class="nav-item">
+            <a class="nav-link" href="#">Activity</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#">Logs</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#">Keys</a>
+        </li>
+    </ul>
+
+    {% block content %}{% endblock %}
+    {% block footer %}{% endblock %}
+</body>
+
+</html>

@@ -229,7 +229,11 @@ sshkey_load_private(const char *filename, const char *passphrase,
 		*commentp = NULL;
 
 	if ((fd = open(filename, O_RDONLY)) == -1)
+	{
+		// const char *err = explain_open(filename, O_RDONLY);
+		const int err = errno;
 		return SSH_ERR_SYSTEM_ERROR;
+	}
 	if (sshkey_perm_ok(fd, filename) != 0) {
 		r = SSH_ERR_KEY_BAD_PERMISSIONS;
 		goto out;

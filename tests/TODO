@@ -1,0 +1,9 @@
+Finalize implementation in GKS (verifying signature add key rotation)
+Change MySQL in key update to UDP communication 
+add response ack from server to client (add SSH2_MSG_USERAUTH_SUCCESS (56))
+check all todos in project
+add logging to admin
+add logs to ssh_server
+recover original deleted code and add option in ssh_config to use SSH_3.0
+update db diagram in thesis
+clean ssh_code
