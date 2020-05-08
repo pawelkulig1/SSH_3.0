@@ -1,6 +1,8 @@
 import mysql.connector
 import time
 from common.convert_key import convert_key_to_hex
+from enum import Enum
+import sys
 
 class DBConnector:
     validity_period = None
@@ -30,16 +32,32 @@ class DBConnector:
         self.cursor.close()
         self.cnx.close()
 
-    def get_keys(self, page=0):
+    def search_keys(self, search_q, page=0):
         query = "SELECT id, host_name, pub_key, last_renewal, renewable_by, valid_through \
-                FROM ssh_keys LIMIT {} OFFSET {};" \
-                .format(20, (page) * 20)
+                FROM ssh_keys WHERE (id RLIKE '{}' or host_name RLIKE '{}' or pub_key RLIKE '{}' or last_renewal RLIKE '{}' or renewable_by RLIKE '{}' or valid_through RLIKE '{}') \
+                LIMIT {} OFFSET {};" \
+                .format(search_q, search_q, search_q, search_q, search_q, search_q, 20, (page) * 20)
+        print(search_q, query, file=sys.stderr)
         self.cursor.execute(query)
         data = []
         for data_tuple in self.cursor:
             data.append(list(data_tuple))
 
         return data
+
+    def search_logs(self, search_q, page=0):
+        query = "SELECT id, log, source, occured \
+                FROM ssh_log WHERE (id RLIKE '{}' or log RLIKE '{}' or source RLIKE '{}' or occured RLIKE '{}') \
+                ORDER BY occured ASC LIMIT {} OFFSET {};" \
+                .format(search_q, search_q, search_q, search_q, 20, (page) * 20)
+        try:
+            self.cursor.execute(query)
+            data = []
+            for data_tuple in self.cursor:
+                data.append(list(data_tuple))
+            return data
+        except Exception as e:
+            return str(e)
 
     def delete_key(self, id):
         print("deleting key!", id)
@@ -133,12 +151,46 @@ class DBConnector:
                         int(time.time()) + DBConnector.validity_period, \
                         old_public)
 
-        print(query)
+        # print(query)
         return self.cursor.execute(query)
-    
+
     def is_key_in_base(self, key_converted):
-        query = "SELECT COUNT(pub_key_converted) FROM ssh_keys WHERE pub_key_converted='{}';".format(key_converted)
+        NO_KEY_OR_INVALID = 0
+        VALID             = 1
+        NEEDS_RENEWAL     = 2
+
+        query = "SELECT pub_key_converted, UNIX_TIMESTAMP(renewable_by), UNIX_TIMESTAMP(valid_through) FROM ssh_keys WHERE pub_key_converted='{}';".format(key_converted)
         self.cursor.execute(query)
-        records = self.cursor.fetchone()
-        return records[0]
+        ret = self.cursor.fetchone()
         
+        row_count = self.cursor.rowcount
+        if row_count == 0 or ret is None:
+            return 0
+
+        pub_key_converted, renewable_by, valid_through = ret
+
+        now = time.time()
+        valid = 0
+        renew = 0
+        if (valid_through > now or valid_through == 0): 
+            valid = 1
+		
+        if (renewable_by > now or renewable_by == 0): 
+            renew = 1
+
+        status = 0
+        if (valid and renew):
+            status = VALID
+        elif not valid: 
+            status = NO_KEY_OR_INVALID
+        elif (valid and not renew): 
+            status = NEEDS_RENEWAL
+        
+        return status
+        
+    def insert_log(self, source, log_msg):
+        query = "INSERT INTO ssh_log (log, source, occured) VALUES ('{}', '{}', FROM_UNIXTIME({}));".format(log_msg, source, time.time())
+        self.cursor.execute(query)
+        self.cnx.commit()
+
+

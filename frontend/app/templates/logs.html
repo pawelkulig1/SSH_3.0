@@ -15,7 +15,7 @@
     {% endblock %}
     {% block content %}
     {{ super() }}
-    <form action="/keys">
+    <form action="/logs">
       <div class="input-group mb-3">
         <input id="search_text" type="text" name="q" class="form-control" placeholder="Type query here" aria-label="Type query here" aria-describedby="basic-addon2">
         <input id="search_text" type="hidden" name="p" value='0' class="form-control" placeholder="Type query here" aria-label="Type query here" aria-describedby="basic-addon2">
@@ -24,48 +24,23 @@
         </div>
       </div>
     </form>
-
-      <div class="btn-group" role="group" aria-label="Basic example" id="keys_action_buttons">
-        <button id="selected_items_indicator" type="button" class="btn btn-info">0 Selected</button>
-        <button id="delete_button"  type="button" class="btn btn-danger"  disabled onclick=action(0) >Delete</button>
-        <button id="renewal_button" type="button" class="btn btn-warning" disabled onclick=action(1) >Force Renewal</button>
-        <button id="disable_button" type="button" class="btn btn-warning" disabled onclick=action(2) >Disable guard</button>
-        <button id="prolong_button" type="button" class="btn btn-success" disabled onclick=action(3) >Prolong</button>
-        <button id="add_button"     type="button" class="btn btn-success" onclick=add_button_clicked() >Add key</button>
-      </div>
-
-      <div id="adding_new_key" class="jumbotron" style="visibility:hidden;position:absolute;">
-        <h1 class="display-4">Add new key:</h1>
-        <p class="lead">Copy and paste your public key to box below and click add button below.</p>
-
-        
-        <textarea id="new_public_key"></textarea>
-        <hr class="my-4">
-        <a class="btn btn-success btn-lg float-right" href="#" role="button" onclick=add_key()>Add</a>
-        <a class="btn btn-danger btn-lg float-right" style="position:relative;right:4px;" href="#" role="button" onclick=close_key()>Close</a>
-      </div>
-
       <form action="#" method="POST">
         <table class="table">
             <thead class="thead-dark">
             <tr>
                 <th scope="col">#</th>
-                <th scope="col">user</th>
-                <th scope="col">ssh public key</th>
-                <th scope="col">last renewal</th>
-                <th scope="col">renewable by</th>
-                <th scope="col">valid through</th>
+                <th scope="col">message</th>
+                <th scope="col">source</th>
+                <th scope="col">occurence</th>
             </tr>
             </thead>
             <tbody>
                 {% for row in table %}
-                    <tr scopr="row" class="keys_row" id="key_nr_{{ row[0] }}" onclick=row_click({{ row[0] }}) >
-                    <td style="width:5%">{{ loop.index }}</td>
-                    <td style="width:5%">{{ row[1] }}</td>
-                    <td style="word-break:break-all; width:75%">{{ row[2] }}</td>
-                    <td style="width:5%">{{ row[3] }}</td>
-                    <td style="width:5%">{{ row[4] }}</td>
-                    <td style="width:5%">{{ row[5] }}</td>
+                    <tr scopr="row" id="key_nr_{{ row[0] }}") >
+                    <td >{{ loop.index }}</td>
+                    <td >{{ row[1] }}</td>
+                    <td >{{ row[2] }}</td>
+                    <td >{{ row[3] }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

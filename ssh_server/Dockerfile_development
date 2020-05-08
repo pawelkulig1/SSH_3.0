@@ -17,5 +17,5 @@ RUN dnf install make -y && \
 	dnf install mysql-devel -y && \
 	dnf install procps -y && \
 	dnf install tcpdump -y && \
-	dnf install libsodium -y
+	dnf install libsodium-devel -y
 

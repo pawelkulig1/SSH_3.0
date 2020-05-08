@@ -3275,7 +3275,39 @@ const char *generate_public_private_keys(const char **old_public_key, const char
 
 	*old_public_key = old_public_key_buf->cd;
 
+
+
+
 	// LOAD OLD PRIVATE KEY TO SIGN MESSAGE
+	/* Ask for a passphrase (twice). */
+	if (identity_passphrase)
+		passphrase1 = xstrdup(identity_passphrase);
+	else if (identity_new_passphrase)
+		passphrase1 = xstrdup(identity_new_passphrase);
+	else {
+passphrase_again1:
+		passphrase1 =
+			read_passphrase("Enter passphrase (empty for no "
+			    "passphrase): ", RP_ALLOW_STDIN);
+		passphrase2 = read_passphrase("Enter same passphrase again: ",
+		    RP_ALLOW_STDIN);
+		if (strcmp(passphrase1, passphrase2) != 0) {
+			/*
+			 * The passphrases do not match.  Clear them and
+			 * retry.
+			 */
+			explicit_bzero(passphrase1, strlen(passphrase1));
+			explicit_bzero(passphrase2, strlen(passphrase2));
+			free(passphrase1);
+			free(passphrase2);
+			printf("Passphrases do not match.  Try again.\n");
+			goto passphrase_again1;
+		}
+		/* Clear the other copy of the passphrase. */
+		explicit_bzero(passphrase2, strlen(passphrase2));
+		free(passphrase2);
+	}
+
 	const char *filename = "/root/.ssh/id_rsa"; //TODO
 	struct sshbuf *priv_pointer = NULL;
 
@@ -3294,6 +3326,8 @@ const char *generate_public_private_keys(const char **old_public_key, const char
 	if (r != 0) {
 		debug("error!");
 	}
+
+
 	// TODO check password
 
 	if (r = sshkey_load_file(fd, priv_pointer) != 0) {
@@ -3308,7 +3342,7 @@ const char *generate_public_private_keys(const char **old_public_key, const char
 	if ((r = sshkey_format_text(public, pub_pointer)) != 0)
 		return r;
 	
-	debug("pub_key: %s, priv_key: %s", *pub_pointer->cd, *priv_pointer->cd);
+	//debug("pub_key: %s, priv_key: %s", *pub_pointer->cd, *priv_pointer->cd);
 
 	char *signed_message = signMessage(priv_pointer->cd, pub_pointer->cd);
 	sshbuf_free(priv_pointer);
@@ -3415,7 +3449,7 @@ passphrase_again:
 	return signed_message;
 }
 
-void Base64Encode( const unsigned char* buffer,
+void Base64Encode2( const unsigned char* buffer,
                    size_t length,
                    char** base64Text) {
   BIO *bio, *b64;
@@ -3440,20 +3474,20 @@ char* signMessage(const char* privateKey, const char* plainText) {
   char* base64Text;
   size_t encMessageLength;
   RSASign(privateRSA, (unsigned char*) plainText, strlen(plainText), &encMessage, &encMessageLength);
-  Base64Encode(encMessage, encMessageLength, &base64Text);
+  Base64Encode2(encMessage, encMessageLength, &base64Text);
   free(encMessage);
   return base64Text;
 }
 
-size_t calcDecodeLength(const char* b64input) {
-  size_t len = strlen(b64input), padding = 0;
+// size_t calcDecodeLength2(const char* b64input) {
+//   size_t len = strlen(b64input), padding = 0;
 
-  if (b64input[len-1] == '=' && b64input[len-2] == '=') //last two chars are =
-    padding = 2;
-  else if (b64input[len-1] == '=') //last char is =
-    padding = 1;
-  return (len*3)/4 - padding;
-}
+//   if (b64input[len-1] == '=' && b64input[len-2] == '=') //last two chars are =
+//     padding = 2;
+//   else if (b64input[len-1] == '=') //last char is =
+//     padding = 1;
+//   return (len*3)/4 - padding;
+// }
 
 int RSASign( RSA* rsa,
               const unsigned char* Msg,

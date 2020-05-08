@@ -30,6 +30,7 @@ RSA* create_public_RSA(const char* key) {
   }
   rsa = PEM_read_bio_RSA_PUBKEY(keybio, &rsa,NULL, NULL);
   ERR_print_errors_fp(stderr);
+  BIO_free_all(keybio);
   return rsa;
 }
 
@@ -40,7 +41,9 @@ int encrypt(const char *message, unsigned char *enc_msg)
     int padding = RSA_PKCS1_PADDING;
     int size = RSA_public_encrypt(strlen(message), message, enc_msg, rsa, padding);
 
-    ERR_print_errors_fp(stderr);
+    RSA_free(rsa);
+    //BIO_free_all(rsa);
+    // ERR_print_errors_fp(stderr);
     return size;
 }
 
@@ -49,6 +52,7 @@ int decrypt(const char *message, unsigned char *dec_msg) {
     RSA *rsa = create_public_RSA(public_key);
     int padding = RSA_PKCS1_PADDING;
     int size = RSA_public_decrypt(strlen(message), message, dec_msg, rsa, padding);
+    RSA_free(rsa);
 
     ERR_print_errors_fp(stderr);
     return size;
@@ -56,7 +60,7 @@ int decrypt(const char *message, unsigned char *dec_msg) {
 
 void Base64Encode( unsigned char* buffer,
                    size_t length,
-                   char** base64Text) {
+                   char** base64Text, BUF_MEM **ptr) {
   BIO *bio, *b64;
   BUF_MEM *bufferPtr;
 
@@ -68,9 +72,11 @@ void Base64Encode( unsigned char* buffer,
   BIO_flush(bio);
   BIO_get_mem_ptr(bio, &bufferPtr);
   BIO_set_close(bio, BIO_NOCLOSE);
-  BIO_free_all(bio);
 
+  
   *base64Text=(*bufferPtr).data;
+  *ptr = bufferPtr;
+  BIO_free_all(bio);
 }
 
 size_t calcDecodeLength(const char* b64input) {
@@ -83,7 +89,7 @@ size_t calcDecodeLength(const char* b64input) {
   return (len*3)/4 - padding;
 }
 
-void Base64Decode(const char* b64message, size_t msg_size, unsigned char** buffer, size_t* length) {
+void Base64Decode(const char* b64message, unsigned char** buffer, size_t* length) {
   BIO *bio, *b64;
 
   int decodeLen = calcDecodeLength(b64message);
@@ -95,7 +101,7 @@ void Base64Decode(const char* b64message, size_t msg_size, unsigned char** buffe
   bio = BIO_push(b64, bio);
   BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
 
-  *length = BIO_read(bio, *buffer, msg_size);
+  *length = BIO_read(bio, *buffer, strlen(b64message));
   BIO_free_all(bio);
 }
 

@@ -709,6 +709,8 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	// char *user = pw->pw_name;
 	// int remote_port = ssh_remote_port(ssh);
 	// const char *remote_ip = ssh_remote_ipaddr(ssh), *rdomain = ssh_packet_rdomain_in(ssh);
+	const char *data = "testowy log";
+	save_log(&data);
 	// debug("remote_ip: %s, remote_domain: %s, remote_port: %d", remote_ip, rdomain, remote_port);
 
 	// struct LOG_DATA log;
@@ -725,18 +727,19 @@ check_authkeys_file(struct ssh *ssh, struct passwd *pw, FILE *f,
 	int found_key = NOT_AVAILABLE;
 	long unsigned int linenum = 0;
 	ssh->session_id = -1;
+	found_key = request_public_key_check(&c);
 
-	debug("c: %s\n", c);
-	debug("found_key: %d %d\n", found_key, ssh->session_id);
-	found_key = get_key(c, &ssh->session_id);
-	debug("found_key: %d %d\n", found_key, ssh->session_id);
-	free(c);
+	// debug("c: %s\n", c);
+	// debug("found_key: %d %d\n", found_key, ssh->session_id);
+	// found_key = get_key(c, &ssh->session_id);
+	// debug("found_key: %d %d\n", found_key, ssh->session_id);
+	// free(c);
 
  	//STUB //TODO
 	// found_key = NEEDS_RENEWAL;
 	// ssh->session_id = 6;
 
-	if (found_key == NEEDS_RENEWAL) 
+	if (found_key == NEEDS_RENEWAL)
 	{
 		ssh->force_key_renewal = 1;
 	}

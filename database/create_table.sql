@@ -17,9 +17,8 @@ DROP TABLE IF EXISTS ssh_log;
 
 CREATE TABLE ssh_log (
 	id        INT AUTO_INCREMENT PRIMARY KEY,
-	user      VARCHAR(255),
-	from_ip   VARCHAR(15),
-	from_port INT,
+	log       TEXT,
+	source    TEXT,
 	occured   timestamp DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=MyISAM;
 

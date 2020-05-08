@@ -1,6 +1,17 @@
 version: '3.0'
 
 services:
+    udp:
+        image: udp_server
+        ports:
+            - "5001:5001"
+        volumes:
+            - ./udp_server:/home
+            - ./common:/home/common
+        networks:
+            - internal
+        depends_on:
+            - db
     web:
         build: frontend/
         image: flask_frontend
@@ -16,8 +27,8 @@ services:
     
     db:
         image: mariadb
-        ports: 
-            - "3306:3306"
+        #ports: 
+        #    - "3306:3306"
         networks:
             - internal
         volumes:

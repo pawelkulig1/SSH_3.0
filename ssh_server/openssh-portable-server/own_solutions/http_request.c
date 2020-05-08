@@ -1,7 +1,8 @@
 
 #include <stdio.h> /* printf, sprintf */
 #include <stdlib.h> /* exit */
-#include <unistd.h> /* read, write, close */#include <string.h> /* memcpy, memset */
+#include <unistd.h> /* read, write, close */
+#include <string.h> /* memcpy, memset */
 #include <sys/socket.h> /* socket, connect */
 #include <netinet/in.h> /* struct sockaddr_in, struct sockaddr */
 #include <netdb.h> /* struct hostent, gethostbyname */
@@ -55,29 +56,49 @@ void get_random(char *out, int len)
 
 void encrypt_message(const char *msg_in, char* key, char* iv, char *msg_out)
 {  
-    unsigned char *encrypted = malloc(2048);
-    size_t size_encrypted = symmetric_encrypt(msg_in, key, iv, encrypted); 
-    unsigned char* b64_encrypted = NULL;
+    unsigned char encrypted[MSG_SIZE];
+    memset(encrypted, 0, MSG_SIZE);
+    size_t size_encrypted = symmetric_encrypt(msg_in, key, iv, encrypted);
+    encrypted[size_encrypted] = 0;
     
-    Base64Encode(encrypted, size_encrypted, &b64_encrypted);
-    free(encrypted);
+    BUF_MEM *ptr1 = NULL;
+    BUF_MEM *ptr2 = NULL;
+    BUF_MEM *ptr3 = NULL;
+
+    unsigned char* b64_encrypted = NULL;
+    Base64Encode(encrypted, size_encrypted, &b64_encrypted, &ptr1);
+    char b64_enc[strlen(b64_encrypted) + 1];
+
+    size_t size = strlen(b64_encrypted);
+    memcpy(b64_enc, b64_encrypted, size);
+    b64_enc[size] = 0;
 
     //asymetric enc of key
-    unsigned char enc_key[128];
-    memset(enc_key, 0, 128);
+    unsigned char enc_key[129];
+    size = encrypt(key, enc_key);
+    enc_key[128] = 0;
 
-    size_t size = encrypt(key, enc_key);
     unsigned char *b64_key = NULL;
+    Base64Encode(enc_key, size, &b64_key, &ptr2);
+    size = strlen(b64_key);
+    char b64_k[size + 1];
+    memcpy(b64_k, b64_key, size);
+    b64_k[size] = 0;
+
     unsigned char *b64_iv = NULL;
-    Base64Encode(enc_key, size, &b64_key);
-    Base64Encode(iv, 16, &b64_iv);
+    Base64Encode(iv, 16, &b64_iv, &ptr3);
+    size = strlen(b64_iv);
+    char b64_i[size + 1];
+    memcpy(b64_i, b64_iv, size);
+    b64_i[size] = 0;
     
     //key|iv|msg
     char *fmt2 = "%s|%s|%s;";
-    memset(msg_out, 0, 16384);
     
-    sprintf(msg_out, fmt2, b64_key, b64_iv, b64_encrypted);
-    
+    sprintf(msg_out, fmt2, b64_k, b64_i, b64_enc);
+    BUF_MEM_free(ptr1);
+    BUF_MEM_free(ptr2);
+    BUF_MEM_free(ptr3);
 }
 
 int find_pos(const char *cstr, const char c)
@@ -94,74 +115,85 @@ int find_pos(const char *cstr, const char c)
     return counter;
 }
 
+void encode_send_recv_decode(char *in, char *out)
+{
+    unsigned char key[33];// = malloc(33);
+    unsigned char iv[17]; // = malloc(17);
+    get_random(key, 32);
+    get_random(iv, 16);
+    // memcpy(key, "aaaabbbbaaaabbbbaaaabbbbaaaabbbb", 32);
+    // memcpy(iv, "aaaabbbbaaaabbbb", 16);
+    key[32] = 0;
+    iv[16] = 0;
+
+    char encrypted_message[MSG_SIZE]; // = malloc(MSG_SIZE);
+    // memset(encrypted_message, '0', MSG_SIZE);
+    encrypt_message(in, key, iv, encrypted_message); 
+
+    size_t recv_size;
+    char b64_encrypted_response[MSG_SIZE];
+    send_msg(encrypted_message, &recv_size, b64_encrypted_response);
+    // printf("%d, %s\n", recv_size, b64_encrypted_response);
+    b64_encrypted_response[recv_size] = 0;
+    
+    size_t response_size;
+    unsigned char *encrypted_response = NULL;
+    Base64Decode(b64_encrypted_response, &encrypted_response, &response_size);
+    
+    char encrypted_resp[MSG_SIZE];
+    memcpy(encrypted_resp, encrypted_response, response_size);
+    free(encrypted_response);
+
+    //char response[MSG_SIZE]; //= malloc(MSG_SIZE);
+    // memset(response, 0, MSG_SIZE);
+    symmetric_decrypt(encrypted_resp, recv_size, key, iv, out);
+    out[recv_size] = 0;
+
+}
+
 int request_public_key_check(const char **public_key)
 {
-    unsigned char *message = malloc(4096);
-    memset(message, 0, 16384);
-    unsigned char *message_fmt = "opcode=%c|public_key=%s|rnd=%s;";
+    const max_message_size = MSG_SIZE;
+    unsigned char message[MSG_SIZE];// = malloc(max_message_size);
+    // memset(message, 0, max_message_size);
+    unsigned const char *message_fmt = "opcode=%c|public_key=%s|rnd=%s;";
     unsigned char opcode = '0';
-    unsigned char *random_chars = malloc(256);
+    unsigned char random_chars[255];// = malloc(256);
     get_random(random_chars, 255);
     random_chars[255] = 0;
 
     sprintf(message, message_fmt, opcode, *public_key, random_chars);    
-    
-    unsigned char key[33];
-    unsigned char iv[17];
-    get_random(key, 32);
-    get_random(iv, 16);
-    key[32] = 0;
-    iv[16] = 0;
+    char response[MSG_SIZE];
+    encode_send_recv_decode(message, response);
 
-    const char *encrypted_message = malloc(4096);
-    encrypt_message(message, key, iv, encrypted_message); 
-
-    size_t recv_size;
-    char *b64_encrypted_response = send_msg(encrypted_message, &recv_size);
-    // printf("%d, %s\n", recv_size, b64_encrypted_response);
-    
-    size_t response_size;
-    unsigned char *encrypted_response;
-    Base64Decode(b64_encrypted_response, recv_size, &encrypted_response, &response_size);
-    char *response = malloc(2048);
-    memset(response, 0, 2048);
-    symmetric_decrypt(encrypted_response, recv_size, key, iv, response);
-
-    printf("%s", response);
+    // printf("%s", response);
     int pos = find_pos(response, '|');
     if (pos != -1)
     {
         int key_allowed = response[pos + 1] - '0';
-        printf("key_allowed: %d", key_allowed);
-        if (key_allowed)
+        // printf("key_allowed: %d", key_allowed);
+        if (key_allowed > 0)
         {
             int proper_key = strcmp(response + pos + 2, random_chars);
             if (proper_key == 0)
             {
-                return 1;
+                return key_allowed;
             }
         }
         return 0;
     }
     return 0;
-
-    free(message);
-    free(random_chars);
-    free(encrypted_message);
-    free(b64_encrypted_response);
-    free(encrypted_response);
-    free(response);
 }
 
-char *send_msg(const char *message, size_t* size)
+char *send_msg(const char *message, size_t* size, char *out)
 {
-    const char *host = "172.18.0.7"; //TODO
-    const int port = 5006; //TODO
+    const char *host = "172.18.0.4"; //TODO
+    const int port = 5001; //TODO
     struct hostent *server;
     struct sockaddr_in serv_addr;
     int sockfd, bytes, sent, received, total;
-    size_t response_size = 4096;
-    char *response = malloc(response_size);
+    size_t response_size = MSG_SIZE;
+    char response[response_size]; //malloc(response_size);
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) error("ERROR opening socket");
@@ -198,7 +230,7 @@ char *send_msg(const char *message, size_t* size)
     } while (sent < total);
 
     /* receive the response */
-    memset(response, 0, sizeof(response));
+    memset(response, 0, MSG_SIZE);
     total = response_size-1;
     received = 0;
     do {
@@ -216,9 +248,13 @@ char *send_msg(const char *message, size_t* size)
         error("ERROR storing complete response from socket");
 
     *size = received;
+    // unsigned char *real_resp = malloc(received + 1);
+    memcpy(out, response, received);
+    out[received] = 0;
+    //free(response);
     /* close the socket */
     close(sockfd);
-    return response;
+    // return real_resp;
 
 }
 
@@ -227,11 +263,21 @@ const char *send_updated_key(const char **signed_key, const char **public_key, c
     //TODO if cannot connect don't update key
     const char *message_fmt = "opcode=%c|signed_key=%s|old_pub_key=%s|new_public_key=%s;";
     const char opcode = '1';
-    char *message = malloc(16384);
+    char message[MSG_SIZE];
     sprintf(message, message_fmt, opcode, *signed_key, *public_key, *new_public_key);
-    size_t recv_size;
-    const char* out = send_msg(message, &recv_size);
-    free(message);
-    return out;
+
+    char response[MSG_SIZE];
+    encode_send_recv_decode(message, response);
+}
+
+int save_log(const char **log) 
+{
+    const char *message_fmt = "opcode=%c|log=%s;";
+    const char opcode = '2';
+    char message[MSG_SIZE];
+    sprintf(message, message_fmt, opcode, *log);
+
+    char response[MSG_SIZE];
+    encode_send_recv_decode(message, response);
 }
 

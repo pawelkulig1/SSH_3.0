@@ -16,14 +16,48 @@ def load_user(user_id):
 
 
 
-@app.route('/')
-@app.route('/index')
+@app.route('/', methods=['PUT', 'GET', 'POST'])
+@app.route('/index', methods=['PUT', 'GET', 'POST'])
+@app.route('/keys', methods=['PUT', 'GET', 'POST'])
 def index():
+    q = ""
+    p = 0
+    query_m = flask.request.args.get("q")
+    page = flask.request.args.get("p")
+    if query_m is not None:
+        q = query_m
+    
+    if page is not None:
+        try:
+            p = int(page)
+        except:
+            p = 0
+
     base = DBConnector()
-    keys = base.get_keys()
+    keys = base.search_keys(q, p)
     return flask.render_template('keys.html', table=keys)
     # return str(keys)
 
+@app.route('/logs', methods=['PUT', 'GET', 'POST'])
+def logs():
+    q = ""
+    p = 0
+    query_m = flask.request.args.get("q")
+    page = flask.request.args.get("p")
+    if query_m is not None:
+        q = query_m
+    
+    if page is not None:
+        try:
+            p = int(page)
+        except:
+            p = 0
+    
+    base = DBConnector()
+    logs = base.search_logs(q, p)
+    if isinstance(logs, str):
+        return logs
+    return flask.render_template('logs.html', table=logs)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -50,18 +84,11 @@ def login():
 @app.route('/api', methods=['PUT', 'GET', 'POST'])
 def api():
     base = DBConnector()
-    ##########
-    # signed_key = flask.request.args.get("signed_key")
-    # old_public_key = flask.request.args.get("old_pub_key")
-    # print('signed key: {}, old_public_key: {}'.format(signed_key, old_public_key), file=sys.stderr)
-    ##########
     delete = flask.request.args.get("delete")
     prolong = flask.request.args.get("prolong")
     renew = flask.request.args.get("force_renewal")
     disable = flask.request.args.get("disable")
     pub_key = flask.request.args.get("add_key")
-    # if signed_key is not None and old_public_key is not None:
-    #     base.update_key(signed_key, old_public_key)
 
     ret = False
     if delete is not None:
@@ -79,6 +106,6 @@ def api():
                   pub_key[first_poz + 8: last_space].replace(" ", "+") + \
                   pub_key[last_space:]
 
-        print("public_converted:", pub_key, file=sys.stderr)
+        # print("public_converted:", pub_key, file=sys.stderr)
         ret = base.add_key(pub_key)
     return str(ret)

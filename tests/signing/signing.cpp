@@ -185,6 +185,7 @@ void Base64Encode( const unsigned char* buffer,
                    char** base64Text) {
   BIO *bio, *b64;
   BUF_MEM *bufferPtr;
+  (*bufferPtr).data = nullptr;
 
   b64 = BIO_new(BIO_f_base64());
   bio = BIO_new(BIO_s_mem());
